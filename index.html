@@ -283,7 +283,7 @@
     </main>
   </div>
   <script>
-    // ==================== FALLBACK LOCAL ACCOUNTS (If Offline/Preview) ====================
+    
    
 
     const RATES = { "AED": 1, "USD": 3.6725, "Euro": 4, "EUR": 4 };
@@ -416,7 +416,7 @@
           Total_Invoiced: 155925.00, Total_Invoiced_AED: 155925.00,
           Total_Payment_Received: 100000.00, Total_Payment_Received_AED: 100000.00,
           Outstanding_Payment: 55925.00, Outstanding_Payment_AED: 55925.00,
-          Payment_Terms: "30 Days Net", Expected_Payment_Details: "Bank Wire Transfer",
+          Payment_Terms: "30 Days Net", Payment_Schedule: "Bank Wire Transfer",
           Delivery_Terms: "DDP Site", Required_Delivery_Date: "2026-04-30",
           PO_Status: "Issued / Received", Remarks: "Client PO received", documents: ["ADNOC_PO_5500912.pdf"],
           items: [
@@ -455,7 +455,7 @@
           Total_Invoiced: 126000.00, Total_Invoiced_AED: 126000.00,
           Total_Paid: 60000.00, Total_Paid_AED: 60000.00,
           Outstanding_Payable: 66000.00, Outstanding_Payable_AED: 66000.00,
-          Payment_Terms: "60 Days Net", Expected_Payment_Details: "Cheque / Wire",
+          Payment_Terms: "60 Days Net", Payment_Schedule: "Cheque / Wire",
           Delivery_Terms: "DDP Warehouse", Expected_Delivery_Date: "2026-04-20",
           PO_Status: "Issued / Received", Remarks: "Issued to Swagelok", documents: ["ATPO260001_Signed.pdf"],
           items: [
@@ -1348,7 +1348,7 @@
           Final_PO_Value_Incl_VAT: 0, Final_PO_Value_Incl_VAT_AED: 0,
           Total_Invoiced: 0, Total_Invoiced_AED: 0, Total_Payment_Received: 0, Total_Payment_Received_AED: 0,
           Outstanding_Payment: 0, Outstanding_Payment_AED: 0,
-          Payment_Terms: "", Expected_Payment_Details: "", Delivery_Terms: "", Required_Delivery_Date: "",
+          Payment_Terms: "", Payment_Schedule: "", Delivery_Terms: "", Required_Delivery_Date: "",
           PO_Status: "Draft", Remarks: ""
         };
         if (tempItems.length === 0) tempItems.push({ Order_Line_No: 1, Client_PO_Line_Reference: "", Item_Category: "Instrumentation", Item_Description: "", Detailed_Specification: "", Manufacturer_or_Brand: "", Model_or_Part_Number: "", UOM: "EA", Quantity: 1, Unit_Price: 0, Line_Total_Excl_VAT: 0, Line_Total_Excl_VAT_AED: 0, Required_Delivery_Date: "", Remarks: "" });
@@ -1389,7 +1389,7 @@
             ${fInput("f_Outstanding_Payment", "Outstanding_Payment", r.Outstanding_Payment, "number", true)}
             ${fInput("f_Outstanding_Payment_AED", "Outstanding_Payment (AED)", r.Outstanding_Payment_AED, "number", false, 'step="0.01"')}
             ${fInput("f_Payment_Terms", "Payment_Terms", r.Payment_Terms)}
-            ${fInput("f_Expected_Payment_Details", "Expected_Payment_Details", r.Expected_Payment_Details)}
+            ${fInput("f_Payment_Schedule", "Payment_Schedule", r.Payment_Schedule)}
             ${fInput("f_Delivery_Terms", "Delivery_Terms", r.Delivery_Terms)}
             ${fInput("f_Required_Delivery_Date", "Required_Delivery_Date", r.Required_Delivery_Date, "date")}
             ${fSelect("f_PO_Status", "PO_Status", PO_STATUSES, r.PO_Status)}
@@ -1461,7 +1461,7 @@
           Final_PO_Value_Incl_VAT: 0, Final_PO_Value_Incl_VAT_AED: 0,
           Total_Invoiced: 0, Total_Invoiced_AED: 0, Total_Paid: 0, Total_Paid_AED: 0,
           Outstanding_Payable: 0, Outstanding_Payable_AED: 0,
-          Payment_Terms: "", Expected_Payment_Details: "", Delivery_Terms: "", Expected_Delivery_Date: "",
+          Payment_Terms: "", Payment_Schedule: "", Delivery_Terms: "", Expected_Delivery_Date: "",
           PO_Status: "Draft", Remarks: ""
         };
         if (tempItems.length === 0) tempItems.push({ PO_Line_No: 1, Sales_Order_ID: r.Sales_Order_ID || "", Item_Category: "Instrumentation", Item_Description: "", Detailed_Specification: "", Manufacturer_or_Brand: "", Model_or_Part_Number: "", UOM: "EA", Quantity: 1, Unit_Price: 0, Line_Total_Excl_VAT: 0, Line_Total_Excl_VAT_AED: 0, Expected_Delivery_Date: "", Remarks: "" });
@@ -1503,7 +1503,7 @@
             ${fInput("f_Outstanding_Payable", "Outstanding_Payable", r.Outstanding_Payable, "number", true)}
             ${fInput("f_Outstanding_Payable_AED", "Outstanding_Payable (AED)", r.Outstanding_Payable_AED, "number", false, 'step="0.01"')}
             ${fInput("f_Payment_Terms", "Payment_Terms", r.Payment_Terms)}
-            ${fInput("f_Expected_Payment_Details", "Expected_Payment_Details", r.Expected_Payment_Details)}
+            ${fInput("f_Payment_Schedule", "Payment_Schedule", r.Payment_Schedule)}
             ${fInput("f_Delivery_Terms", "Delivery_Terms", r.Delivery_Terms)}
             ${fInput("f_Expected_Delivery_Date", "Expected_Delivery_Date", r.Expected_Delivery_Date, "date")}
             ${fSelect("f_PO_Status", "PO_Status", PO_STATUSES, r.PO_Status)}
@@ -2178,7 +2178,7 @@
           Total_Invoiced: numVal("f_Total_Invoiced"), Total_Invoiced_AED: numVal("f_Total_Invoiced_AED"),
           Total_Payment_Received: numVal("f_Total_Payment_Received"), Total_Payment_Received_AED: numVal("f_Total_Payment_Received_AED"),
           Outstanding_Payment: numVal("f_Outstanding_Payment"), Outstanding_Payment_AED: numVal("f_Outstanding_Payment_AED"),
-          Payment_Terms: val("f_Payment_Terms"), Expected_Payment_Details: val("f_Expected_Payment_Details"),
+          Payment_Terms: val("f_Payment_Terms"), Payment_Schedule: val("f_Payment_Schedule"),
           Delivery_Terms: val("f_Delivery_Terms"), Required_Delivery_Date: val("f_Required_Delivery_Date"),
           PO_Status: val("f_PO_Status"), Remarks: val("f_Remarks"),
           documents: tempAttachments, items: tempItems.map((it, idx) => ({ ...it, Order_Line_No: idx + 1 }))
@@ -2212,7 +2212,7 @@
           Total_Invoiced: numVal("f_Total_Invoiced"), Total_Invoiced_AED: numVal("f_Total_Invoiced_AED"),
           Total_Paid: numVal("f_Total_Paid"), Total_Paid_AED: numVal("f_Total_Paid_AED"),
           Outstanding_Payable: numVal("f_Outstanding_Payable"), Outstanding_Payable_AED: numVal("f_Outstanding_Payable_AED"),
-          Payment_Terms: val("f_Payment_Terms"), Expected_Payment_Details: val("f_Expected_Payment_Details"),
+          Payment_Terms: val("f_Payment_Terms"), Payment_Schedule: val("f_Payment_Schedule"),
           Delivery_Terms: val("f_Delivery_Terms"), Expected_Delivery_Date: val("f_Expected_Delivery_Date"),
           PO_Status: val("f_PO_Status"), Remarks: val("f_Remarks"),
           documents: tempAttachments, items: tempItems.map((it, idx) => ({ ...it, PO_Line_No: idx + 1 }))
