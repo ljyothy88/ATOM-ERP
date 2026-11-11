@@ -4,23 +4,32 @@ import crypto from "crypto";
 const SECRET = process.env.ATOM_ERP_SECRET || "atom-erp-netlify-secret-key-2026-pro";
 
 const DEFAULT_USERS = {
-  "bilal":      { password: "atom@123",     displayName: "Bilal Kaleel", role: "employee", status: "active", initials: "BK" },
-  "gayathri":   { password: "gayathri@123", displayName: "Gayathri",     role: "employee", status: "active", initials: "GA" },
-  "manju":      { password: "manju@123",    displayName: "Manju",        role: "employee", status: "active", initials: "MA" },
-  "management": { password: "mgmt@123",     displayName: "Management User", role: "management", status: "active", initials: "MG" },
-  "lakshmy":    { password: "lakshmy@123",  displayName: "Lakshmy",      role: "admin",    status: "active", initials: "LA" }
+  "bilal":      { password: "atom@123",     displayName: "Bilal Kaleel",    role: "employee",   status: "Active", initials: "BK", email: "bilal@atom.ae" },
+  "gayathri":   { password: "gayathri@123", displayName: "Gayathri",        role: "employee",   status: "Active", initials: "GA", email: "gayathri@atom.ae" },
+  "manju":      { password: "manju@123",    displayName: "Manju",           role: "employee",   status: "Active", initials: "MA", email: "manju@atom.ae" },
+  "management": { password: "mgmt@123",     displayName: "Management User", role: "management", status: "Active", initials: "MG", email: "management@atom.ae" },
+  "lakshmy":    { password: "lakshmy@123",  displayName: "Lakshmy",         role: "admin",      status: "Active", initials: "LA", email: "lakshmy@atom.ae" }
 };
 
 async function getUsersConfig(store) {
   try {
     let savedUsers = await store.get("erp_users", { type: "json" });
     if (!savedUsers || Object.keys(savedUsers).length === 0) {
-      savedUsers = DEFAULT_USERS;
+      savedUsers = { ...DEFAULT_USERS };
       await store.setJSON("erp_users", savedUsers);
+    } else {
+      let updated = false;
+      for (const [k, v] of Object.entries(DEFAULT_USERS)) {
+        if (!savedUsers[k]) {
+          savedUsers[k] = v;
+          updated = true;
+        }
+      }
+      if (updated) await store.setJSON("erp_users", savedUsers);
     }
     return savedUsers;
   } catch (e) {
-    return DEFAULT_USERS;
+    return { ...DEFAULT_USERS };
   }
 }
 
@@ -66,29 +75,37 @@ export default async (req, context) => {
     const action = url.searchParams.get("action") || "";
     const store = getStore("atom-erp-database-v1");
 
+    // 1. LOGIN
     if (req.method === "POST" && action === "login") {
       const body = await req.json().catch(() => ({}));
       const username = (body.username || "").trim().toLowerCase();
       const password = body.password || "";
-      
       const users = await getUsersConfig(store);
+      const userObj = users[username];
 
-      if (users[username] && users[username].status === "active" && users[username].password === password) {
-        const token = createToken(username, users[username]);
-        return jsonResponse({
-          ok: true,
-          token,
-          user: {
-            username,
-            displayName: users[username].displayName,
-            role: users[username].role,
-            initials: users[username].initials
-          }
-        });
+      if (userObj) {
+        const isActive = (userObj.status || "Active").toLowerCase() === "active";
+        if (!isActive) {
+          return jsonResponse({ ok: false, error: "Account is Inactive. Contact System Admin." }, 401);
+        }
+        if (userObj.password === password) {
+          const token = createToken(username, userObj);
+          return jsonResponse({
+            ok: true,
+            token,
+            user: {
+              username,
+              displayName: userObj.displayName,
+              role: userObj.role,
+              initials: userObj.initials || username.slice(0, 2).toUpperCase()
+            }
+          });
+        }
       }
-      return jsonResponse({ ok: false, error: "Invalid Username, Password, or Inactive Account" }, 401);
+      return jsonResponse({ ok: false, error: "Invalid Username or Password" }, 401);
     }
 
+    // VERIFY TOKEN
     const authHeader = req.headers.get("authorization") || "";
     const token = authHeader.replace(/^Bearer\s+/i, "");
     const sessionUser = verifyToken(token);
@@ -96,6 +113,7 @@ export default async (req, context) => {
       return jsonResponse({ ok: false, error: "Unauthorized session" }, 401);
     }
 
+    // 2. CHANGE PASSWORD
     if (req.method === "POST" && action === "change-password") {
       const { oldPassword, newPassword } = await req.json();
       if (!newPassword || newPassword.length < 4) {
@@ -111,30 +129,40 @@ export default async (req, context) => {
       return jsonResponse({ ok: true, message: "Password updated successfully!" });
     }
 
+    // 3. USER MANAGEMENT (Admin Only)
     if (action === "users") {
       const users = await getUsersConfig(store);
       if (req.method === "GET") {
-        if (sessionUser.role !== "admin") return jsonResponse({ ok: false, error: "Forbidden" }, 403);
+        if (sessionUser.role !== "admin" && sessionUser.role !== "management") {
+          return jsonResponse({ ok: false, error: "Forbidden" }, 403);
+        }
         return jsonResponse({ ok: true, users });
       }
       if (req.method === "POST") {
         if (sessionUser.role !== "admin") return jsonResponse({ ok: false, error: "Forbidden" }, 403);
-        const { username, password, displayName, role, status } = await req.json();
+        const { username, password, displayName, role, status, email } = await req.json();
         const key = (username || "").trim().toLowerCase();
         if (!key) return jsonResponse({ ok: false, error: "Username required" }, 400);
+        const existing = users[key] || {};
+        const dName = (displayName || existing.displayName || key).trim();
+        const initials = dName.split(" ").filter(Boolean).map(w => w[0]).join("").toUpperCase().slice(0, 2) || key.slice(0, 2).toUpperCase();
         users[key] = {
-          password: password || "atom@123",
-          displayName: displayName || key,
-          role: role || "employee",
-          initials: (displayName || key).split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2),
-          status: status || "active"
+          password: password ? password : (existing.password || "atom@123"),
+          displayName: dName,
+          role: role || existing.role || "employee",
+          initials,
+          status: status || existing.status || "Active",
+          email: email !== undefined ? email : (existing.email || "")
         };
         await store.setJSON("erp_users", users);
         return jsonResponse({ ok: true, users });
       }
       if (req.method === "DELETE") {
         if (sessionUser.role !== "admin") return jsonResponse({ ok: false, error: "Forbidden" }, 403);
-        const target = url.searchParams.get("username");
+        const target = (url.searchParams.get("username") || "").trim().toLowerCase();
+        if (target === "lakshmy") {
+          return jsonResponse({ ok: false, error: "Cannot delete primary System Admin." }, 400);
+        }
         if (target && users[target]) {
           delete users[target];
           await store.setJSON("erp_users", users);
@@ -143,10 +171,12 @@ export default async (req, context) => {
       }
     }
 
+    // 4. LOAD DATABASE
     if (req.method === "GET" && action === "load") {
       let db = await store.get("erp_state", { type: "json" });
+      const users = await getUsersConfig(store);
       if (!db) {
-        return jsonResponse({ ok: true, empty: true, user: sessionUser });
+        return jsonResponse({ ok: true, empty: true, user: sessionUser, users });
       }
       if (sessionUser.role === "employee") {
         const empName = sessionUser.displayName;
@@ -168,43 +198,13 @@ export default async (req, context) => {
           }
         });
       }
-      return jsonResponse({ ok: true, empty: false, user: sessionUser, data: db });
+      return jsonResponse({ ok: true, empty: false, user: sessionUser, users, data: db });
     }
 
+    // 5. SAVE DATABASE
     if (req.method === "POST" && action === "save") {
       const payload = await req.json();
       const incoming = payload.data || {};
       let existing = await store.get("erp_state", { type: "json" });
 
-      if (!existing || sessionUser.role === "admin" || sessionUser.role === "management" || payload.isInitialSeed) {
-        await store.setJSON("erp_state", incoming);
-        return jsonResponse({ ok: true, syncedAt: new Date().toISOString() });
-      }
-
-      const empName = sessionUser.displayName;
-      const mergeCollection = (existingArr = [], incomingArr = []) => {
-        const others = existingArr.filter(r => r.Created_By !== empName);
-        return [...incomingArr, ...others];
-      };
-
-      const merged = {
-        clients: incoming.clients || existing.clients || [],
-        suppliers: incoming.suppliers || existing.suppliers || [],
-        enquiries: mergeCollection(existing.enquiries, incoming.enquiries),
-        supplierQuotations: mergeCollection(existing.supplierQuotations, incoming.supplierQuotations),
-        clientQuotations: mergeCollection(existing.clientQuotations, incoming.clientQuotations),
-        salesOrders: mergeCollection(existing.salesOrders, incoming.salesOrders),
-        salesInvoices: mergeCollection(existing.salesInvoices, incoming.salesInvoices),
-        purchaseOrders: mergeCollection(existing.purchaseOrders, incoming.purchaseOrders),
-        purchaseInvoices: mergeCollection(existing.purchaseInvoices, incoming.purchaseInvoices)
-      };
-
-      await store.setJSON("erp_state", merged);
-      return jsonResponse({ ok: true, syncedAt: new Date().toISOString() });
-    }
-
-    return jsonResponse({ ok: false, error: "Unknown action" }, 400);
-  } catch (err) {
-    return jsonResponse({ ok: false, error: err.message || "Server error" }, 500);
-  }
-};
+      if (!existing ||
