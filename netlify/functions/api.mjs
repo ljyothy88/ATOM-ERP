@@ -12,12 +12,16 @@ const DEFAULT_USERS = {
 };
 
 async function getUsersConfig(store) {
-  let savedUsers = await store.get("erp_users", { type: "json" });
-  if (!savedUsers) {
-    savedUsers = DEFAULT_USERS;
-    await store.setJSON("erp_users", savedUsers);
+  try {
+    let savedUsers = await store.get("erp_users", { type: "json" });
+    if (!savedUsers || Object.keys(savedUsers).length === 0) {
+      savedUsers = DEFAULT_USERS;
+      await store.setJSON("erp_users", savedUsers);
+    }
+    return savedUsers;
+  } catch (e) {
+    return DEFAULT_USERS;
   }
-  return savedUsers;
 }
 
 function createToken(username, u) {
@@ -63,20 +67,22 @@ export default async (req, context) => {
     const store = getStore("atom-erp-database-v1");
 
     if (req.method === "POST" && action === "login") {
-      const { username, password } = await req.json();
-      const uKey = (username || "").trim().toLowerCase();
+      const body = await req.json().catch(() => ({}));
+      const username = (body.username || "").trim().toLowerCase();
+      const password = body.password || "";
+      
       const users = await getUsersConfig(store);
 
-      if (users[uKey] && users[uKey].status === "active" && users[uKey].password === password) {
-        const token = createToken(uKey, users[uKey]);
+      if (users[username] && users[username].status === "active" && users[username].password === password) {
+        const token = createToken(username, users[username]);
         return jsonResponse({
           ok: true,
           token,
           user: {
-            username: uKey,
-            displayName: users[uKey].displayName,
-            role: users[uKey].role,
-            initials: users[uKey].initials
+            username,
+            displayName: users[username].displayName,
+            role: users[username].role,
+            initials: users[username].initials
           }
         });
       }
