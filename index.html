@@ -1,0 +1,2294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ATOM ERP — Commercial, Procurement & Billing System</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    .sidebar-collapsed { width: 4.5rem !important; }
+    .sidebar-collapsed .nav-label, .sidebar-collapsed .nav-group-title, .sidebar-collapsed .brand-text { display: none !important; }
+  </style>
+</head>
+<body class="text-slate-800 antialiased h-screen flex overflow-hidden">
+
+  <!-- ==================== LOGIN SCREEN ==================== -->
+  <div id="login-screen" class="fixed inset-0 z-50 bg-slate-900 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden">
+      <div class="bg-slate-950 p-6 text-center border-b border-slate-800">
+        <div class="w-12 h-12 rounded-xl bg-blue-600 mx-auto flex items-center justify-center font-bold text-white text-lg shadow-lg mb-3">
+          AT
+        </div>
+        <h1 class="text-lg font-bold text-white tracking-tight">ATOM Enterprise Registers</h1>
+        <p class="text-xs text-slate-400 mt-1">Commercial, Procurement & Billing Portal</p>
+      </div>
+      <form onsubmit="event.preventDefault(); handleLogin();" class="p-6 space-y-4">
+        <div id="loginError" class="hidden bg-rose-50 border border-rose-200 text-rose-700 text-xs px-3.5 py-2.5 rounded-lg font-medium">
+          Invalid Username or Password. Please try again.
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Username</label>
+          <input type="text" id="login_username" required placeholder="Enter username" autocomplete="username" class="w-full text-sm border border-slate-300 rounded-lg px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-600" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Password</label>
+          <input type="password" id="login_password" required placeholder="Enter password" autocomplete="current-password" class="w-full text-sm border border-slate-300 rounded-lg px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-600" />
+        </div>
+        <div class="pt-2">
+          <button type="submit" id="loginSubmitBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm py-2.5 rounded-lg shadow transition">
+            Sign In
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+    <!-- ==================== CHANGE PASSWORD MODAL ==================== -->
+  <div id="password-modal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div>
+          <h3 class="text-sm font-bold text-slate-900">Change Account Password</h3>
+          <p class="text-[11px] text-slate-500">Update password for your ATOM ERP account</p>
+        </div>
+        <button type="button" onclick="closePasswordModal()" class="text-slate-400 hover:text-slate-700 font-bold text-sm">✕</button>
+      </div>
+      <form onsubmit="event.preventDefault(); submitChangePassword();" class="space-y-3.5">
+        <div id="pwdModalError" class="hidden bg-rose-50 border border-rose-200 text-rose-700 text-xs px-3 py-2 rounded-lg font-medium"></div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Current Password *</label>
+          <input type="password" id="cp_old" required placeholder="Enter current password" class="w-full text-xs border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-600" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">New Password *</label>
+          <input type="password" id="cp_new" required minlength="4" placeholder="Enter new password" class="w-full text-xs border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-600" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Confirm New Password *</label>
+          <input type="password" id="cp_confirm" required minlength="4" placeholder="Re-enter new password" class="w-full text-xs border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-600" />
+        </div>
+        <div class="flex justify-end space-x-2.5 pt-3 border-t border-slate-100">
+          <button type="button" onclick="closePasswordModal()" class="px-4 py-2 rounded-lg text-xs font-medium border border-slate-300 text-slate-700 hover:bg-slate-100">Cancel</button>
+          <button type="submit" id="cpSubmitBtn" class="px-4 py-2 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-sm">Update Password</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== CONFIRMATION MODAL ==================== -->
+  <div id="confirm-modal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+      <div class="flex items-start space-x-3">
+        <div id="confirmIconBox" class="w-10 h-10 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-base shrink-0">!</div>
+        <div>
+          <h3 id="confirmTitle" class="text-sm font-bold text-slate-900">Confirm Action</h3>
+          <p id="confirmMessage" class="text-xs text-slate-600 mt-1 leading-relaxed">Are you sure you want to proceed?</p>
+        </div>
+      </div>
+      <div class="flex justify-end space-x-2.5 pt-2 border-t border-slate-100">
+        <button type="button" onclick="closeConfirmModal()" class="px-4 py-2 rounded-lg text-xs font-medium border border-slate-300 text-slate-700 hover:bg-slate-100">Cancel</button>
+        <button type="button" id="confirmProceedBtn" class="px-4 py-2 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-sm">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== COLLAPSIBLE LEFT SIDEBAR ==================== -->
+  <aside id="appSidebar" class="w-64 bg-slate-950 text-slate-300 flex flex-col border-r border-slate-800 transition-all duration-200 shrink-0 select-none">
+    <div class="h-16 px-4 flex items-center justify-between border-b border-slate-800">
+      <div class="flex items-center space-x-3 overflow-hidden">
+        <div class="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-white shrink-0 shadow">AT</div>
+        <div class="brand-text">
+          <div class="text-sm font-bold text-white leading-tight">ATOM ERP</div>
+          <div class="text-[10px] text-slate-400">Enterprise Portal</div>
+        </div>
+      </div>
+      <button onclick="toggleSidebar()" title="Collapse / Expand Sidebar" class="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800">
+        ☰
+      </button>
+    </div>
+
+    <div class="flex-1 overflow-y-auto py-4 px-2.5 space-y-5 text-xs">
+      <!-- Group 1: Commercial -->
+      <div>
+        <div class="nav-group-title px-2.5 mb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">Commercial & RFQs</div>
+        <div class="space-y-1">
+          <button onclick="requestModuleSwitch('enquiries')" id="nav-enquiries" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg font-medium transition bg-blue-600 text-white">
+            <span class="mono font-bold text-xs w-5 text-center">01</span>
+            <span class="nav-label truncate">Enquiry Register</span>
+          </button>
+          <button onclick="requestModuleSwitch('supplierQuotations')" id="nav-supplierQuotations" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg font-medium transition text-slate-300 hover:bg-slate-900">
+            <span class="mono font-bold text-xs w-5 text-center">02</span>
+            <span class="nav-label truncate">Supplier Quotations</span>
+          </button>
+          <button onclick="requestModuleSwitch('clientQuotations')" id="nav-clientQuotations" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg font-medium transition text-slate-300 hover:bg-slate-900">
+            <span class="mono font-bold text-xs w-5 text-center">03</span>
+            <span class="nav-label truncate">Client Quotations</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Group 2: Sales & Billing -->
+      <div>
+        <div class="nav-group-title px-2.5 mb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">Client Orders & Billing</div>
+        <div class="space-y-1">
+          <button onclick="requestModuleSwitch('salesOrders')" id="nav-salesOrders" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg font-medium transition text-slate-300 hover:bg-slate-900">
+            <span class="mono font-bold text-xs w-5 text-center">04</span>
+            <span class="nav-label truncate">Sales Orders</span>
+          </button>
+          <button onclick="requestModuleSwitch('salesInvoices')" id="nav-salesInvoices" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg font-medium transition text-slate-300 hover:bg-slate-900">
+            <span class="mono font-bold text-xs w-5 text-center">05</span>
+            <span class="nav-label truncate">Sales Invoices</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Group 3: Procurement & Payables -->
+      <div>
+        <div class="nav-group-title px-2.5 mb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">Procurement & Payables</div>
+        <div class="space-y-1">
+          <button onclick="requestModuleSwitch('purchaseOrders')" id="nav-purchaseOrders" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg font-medium transition text-slate-300 hover:bg-slate-900">
+            <span class="mono font-bold text-xs w-5 text-center">06</span>
+            <span class="nav-label truncate">Purchase Orders</span>
+          </button>
+          <button onclick="requestModuleSwitch('purchaseInvoices')" id="nav-purchaseInvoices" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg font-medium transition text-slate-300 hover:bg-slate-900">
+            <span class="mono font-bold text-xs w-5 text-center">07</span>
+            <span class="nav-label truncate">Purchase Invoices</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Group 4: Master Data -->
+      <div>
+        <div class="nav-group-title px-2.5 mb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">Master Registers</div>
+        <div class="space-y-1">
+          <button onclick="requestModuleSwitch('clients')" id="nav-clients" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg font-medium transition text-slate-300 hover:bg-slate-900">
+            <span class="mono font-bold text-xs w-5 text-center">08</span>
+            <span class="nav-label truncate">Client Master</span>
+          </button>
+          <button onclick="requestModuleSwitch('suppliers')" id="nav-suppliers" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg font-medium transition text-slate-300 hover:bg-slate-900">
+            <span class="mono font-bold text-xs w-5 text-center">09</span>
+            <span class="nav-label truncate">Supplier Master</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ==================== MAIN CONTENT AREA ==================== -->
+  <div class="flex-1 flex flex-col overflow-hidden">
+    <!-- Top Header -->
+    <header class="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between shrink-0">
+      <div class="flex items-center space-x-4">
+        <h2 id="topHeaderTitle" class="text-base font-bold text-slate-900">Enquiry Register</h2>
+        <span id="dbSyncBadge" class="text-[11px] px-2.5 py-0.5 rounded-full font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Cloud Database Connected
+        </span>
+      </div>
+
+      <div class="flex items-center space-x-4">
+        <!-- Admin Employee Filter -->
+        <div id="adminFilterWrap" class="hidden flex items-center space-x-2">
+          <span class="text-xs font-semibold text-slate-500">Employee:</span>
+          <select id="globalEmployeeFilter" onchange="renderListingView()" class="text-xs border border-slate-300 rounded-lg px-2.5 py-1.5 bg-white font-semibold text-slate-800">
+            <option value="ALL">All Employees</option>
+            <option value="Bilal Kaleel">Bilal Kaleel</option>
+            <option value="Gayathri">Gayathri</option>
+            <option value="Manju">Manju</option>
+          </select>
+        </div>
+
+        <div class="flex items-center space-x-3 pl-4 border-l border-slate-200">
+          <div id="headerUserAvatar" class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-xs font-bold text-white">BK</div>
+          <div>
+            <div id="headerUserName" class="text-xs font-bold text-slate-900 leading-tight">Bilal Kaleel</div>
+            <div id="headerUserRole" class="text-[11px] text-slate-500">Employee</div>
+          </div>
+          <button onclick="openPasswordModal()" class="text-xs px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-blue-600 text-slate-700 hover:text-white font-semibold transition">
+            Change Password
+          </button>
+          <button onclick="handleLogout()" class="text-xs px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-rose-600 text-slate-700 hover:text-white font-semibold transition">
+            Logout
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Dynamic Workspace -->
+    <main class="flex-1 overflow-y-auto p-6">
+      <!-- Toast -->
+      <div id="toast" class="fixed bottom-5 right-5 z-50 hidden bg-slate-900 text-white px-4 py-3 rounded-lg shadow-xl border border-slate-700 flex items-center space-x-3 text-xs font-medium">
+        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+        <span id="toastMsg">Saved!</span>
+      </div>
+
+      <!-- LISTING CONTAINER -->
+      <div id="workspace-listing" class="space-y-5">
+        <div id="kpiBar" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"></div>
+
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div class="flex items-center gap-2.5">
+            <input type="text" id="listSearchInput" oninput="renderListingView()" placeholder="Search records..." class="text-xs border border-slate-300 rounded-lg px-3 py-2 w-64 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="exportCurrentModuleCSV()" class="text-xs font-semibold px-3.5 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700">
+              Export CSV
+            </button>
+            <button onclick="openRecordForm(null, 'create')" id="addNewRecordBtn" class="text-xs font-semibold px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-xs">
+              + Add New Record
+            </button>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead id="listingTableHead" class="bg-slate-900 text-slate-200 text-[11px] uppercase tracking-wider"></thead>
+              <tbody id="listingTableBody" class="divide-y divide-slate-200 text-xs"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- FORM / VIEW CONTAINER -->
+      <div id="workspace-form" class="hidden space-y-6">
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between">
+          <div class="flex items-center space-x-3">
+            <button type="button" onclick="handleBackClick()" class="text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-300 hover:bg-slate-100 text-slate-700">
+              ← Back to Listing
+            </button>
+            <div>
+              <h3 id="formHeaderTitle" class="text-sm font-bold text-slate-900">Record Details</h3>
+              <p id="formHeaderSub" class="text-[11px] text-slate-500"></p>
+            </div>
+          </div>
+          <div class="flex items-center space-x-2">
+            <button type="button" id="switchToEditBtn" onclick="switchViewToEditMode()" class="hidden text-xs font-semibold px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white shadow-xs">
+              Edit Record
+            </button>
+            <button type="button" id="formSaveBtn" onclick="handleSaveRecordClick()" class="text-xs font-semibold px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-xs">
+              Save Record
+            </button>
+          </div>
+        </div>
+
+        <div id="formDynamicBody" class="space-y-6"></div>
+      </div>
+    </main>
+  </div>
+  <script>
+    // ==================== FALLBACK LOCAL ACCOUNTS (If Offline/Preview) ====================
+    const FALLBACK_USERS = {
+      "bilal":    { password: "atom@123",     displayName: "Bilal Kaleel", role: "employee", initials: "BK" },
+      "gayathri": { password: "gayathri@123", displayName: "Gayathri",     role: "employee", initials: "GA" },
+      "manju":    { password: "manju@123",    displayName: "Manju",        role: "employee", initials: "MA" },
+      "lakshmy":  { password: "lakshmy@123",  displayName: "Lakshmy",      role: "admin",    initials: "LA" }
+    };
+
+    const RATES = { "AED": 1, "USD": 3.6725, "Euro": 4, "EUR": 4 };
+    const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const ITEM_CATEGORIES = ["Instrumentation", "Valves & Manifolds", "Piping & Fasteners", "Electrical Bulk", "Mechanical / Rotating", "Safety & PPE", "General Consumables"];
+    const UOM_LIST = ["EA", "SET", "MTR", "KG", "LOT", "BOX", "PAIR", "ROLL"];
+    const CURRENCIES = ["AED", "USD", "Euro"];
+    const QUOTATION_STATUSES = ["Draft", "Submitted", "Under Clarification", "Under Negotiation", "Accepted", "Rejected", "Superseded", "Expired", "Withdrawn"];
+    const PO_STATUSES = ["Draft", "Pending Approval", "Issued / Received", "Partially Fulfilled", "Fulfilled", "Closed", "Cancelled"];
+    const INVOICE_STATUSES = ["Draft", "Issued / Received", "Under Verification", "Approved", "Disputed", "Cancelled"];
+
+    let activeUser = null;
+    let authToken = sessionStorage.getItem("ATOM_NETLIFY_TOKEN") || null;
+    let currentModule = "enquiries";
+    let formMode = null; // 'create' | 'edit' | 'view'
+    let editingIdx = null;
+    let formDirty = false;
+    let tempAttachments = [];
+    let tempItems = [];
+    let tempPayments = [];
+
+    // ==================== INITIAL SEED DATA ====================
+    const SEED_DB = {
+      clients: [
+        { code: "ATCL000001", name: "ADNOC Onshore", type: "End User", country: "United Arab Emirates", city: "Abu Dhabi", contact: "Saeed Al Mansoori", designation: "Senior Procurement Engineer", email: "saeed.m@adnoc.ae", phone: "+971 2 602 0000", channel: "SAP Ariba", vatApplicable: "Yes", status: "Active", documents: [] },
+        { code: "ATCL000002", name: "NPCC (NMDC Energy)", type: "EPC Contractor", country: "United Arab Emirates", city: "Abu Dhabi", contact: "Rashed Al Mazrouei", designation: "Lead Supply Chain Specialist", email: "procurement@npcc.ae", phone: "+971 2 554 9000", channel: "Email", vatApplicable: "Yes", status: "Active", documents: [] },
+        { code: "ATCL000003", name: "Petrofac Emirates", type: "EPC Contractor", country: "United Arab Emirates", city: "Sharjah", contact: "Karim Haddad", designation: "Package Buyer", email: "karim.haddad@petrofac.com", phone: "+971 6 517 0000", channel: "Email", vatApplicable: "Yes", status: "Active", documents: [] },
+        { code: "ATCL000004", name: "Target Engineering Construction", type: "Other Contractor", country: "United Arab Emirates", city: "Abu Dhabi", contact: "Nabil Khoury", designation: "Procurement Manager", email: "tenders@target.ae", phone: "+971 2 671 2400", channel: "Phone", vatApplicable: "No", status: "Active", documents: [] }
+      ],
+      suppliers: [
+        { code: "ATSP000001", name: "Swagelok Middle East FZE", country: "United Arab Emirates", city: "Dubai", contact: "vinoj@swagelok.ae", phone: "+971 4 881 0000", category: "Instrumentation", vatApplicable: "Yes", status: "Active", documents: [] },
+        { code: "ATSP000002", name: "R. STAHL Middle East FZE", country: "United Arab Emirates", city: "Dubai", contact: "sales@stahl.ae", phone: "+971 4 886 2000", category: "Electrical Bulk", vatApplicable: "Yes", status: "Active", documents: [] },
+        { code: "ATSP000003", name: "Emerson Process Management", country: "United Arab Emirates", city: "Abu Dhabi", contact: "rfq.mea@emerson.com", phone: "+971 2 697 2000", category: "Instrumentation", vatApplicable: "Yes", status: "Active", documents: [] }
+      ],
+      enquiries: [
+        {
+          Enquiry_ID: "ATEQ260001", Created_By: "Bilal Kaleel", Enquiry_Date: "2026-03-02",
+          Enquiry_Title: "Supply of SS316 Instrumentation Tube Fittings & Manifolds",
+          Client_Name: "ADNOC Onshore", Client_Enquiry_Reference: "ADN-ON-RFQ-26-4412",
+          Project_Name: "Bab Far North Compression Upgrade",
+          Requirement_Details: "NACE MR0175 compliant dual ferrule tube fittings and 5-valve manifolds.",
+          Contact_Name: "Saeed Al Mansoori", Contact_Email: "saeed.m@adnoc.ae", Contact_Phone: "+971 2 602 0000",
+          Enquiry_Source: "SAP Ariba", Quotation_Due_Date: "2026-03-28", Enquiry_Status: "Quoted",
+          Final_Quoted_Amount: 155925.00, Margin_Percent: 18.50,
+          Last_Follow_Up_Date: "2026-03-25", Next_Follow_Up_Date: "2026-04-02",
+          Next_Action: "Follow up on technical evaluation approval", Remarks: "Ex-stock UAE preferred",
+          documents: ["ADNOC_RFQ_4412_Specs.pdf"],
+          items: [
+            { Client_Item_Reference: "ITM-10.1", Item_Category: "Instrumentation", Item_Description: "1/2 Inch Male Connector SS316", Detailed_Specification: "1/2 OD x 1/2 NPT Male, ASTM A479 SS316", Manufacturer_or_Brand: "Swagelok", Model_or_Part_Number: "SS-810-1-8", UOM: "EA", Quantity: 250.00, Required_Delivery_Date: "2026-05-01", Remarks: "ADNOC Approved" }
+          ]
+        },
+        {
+          Enquiry_ID: "ATEQ260002", Created_By: "Gayathri", Enquiry_Date: "2026-03-19",
+          Enquiry_Title: "Differential Pressure Transmitters & Diaphragm Seals",
+          Client_Name: "Petrofac Emirates", Client_Enquiry_Reference: "PFC-INS-2026-312",
+          Project_Name: "Upper Zakum UZ750 Surface Facilities",
+          Requirement_Details: "HART 7 Smart DP Transmitters with Monel 400 wetted parts.",
+          Contact_Name: "Karim Haddad", Contact_Email: "karim.haddad@petrofac.com", Contact_Phone: "+971 6 517 0000",
+          Enquiry_Source: "Email", Quotation_Due_Date: "2026-04-06", Enquiry_Status: "Quoted",
+          Final_Quoted_Amount: 215000.00, Margin_Percent: 19.80,
+          Last_Follow_Up_Date: "2026-03-27", Next_Follow_Up_Date: "2026-04-03",
+          Next_Action: "Clarify SIL2 certificate", Remarks: "Urgent package",
+          documents: [],
+          items: [
+            { Client_Item_Reference: "FT-201A", Item_Category: "Instrumentation", Item_Description: "Smart DP Transmitter", Detailed_Specification: "4-20mA HART, 0-250 mbar", Manufacturer_or_Brand: "Emerson", Model_or_Part_Number: "3051CD2A", UOM: "EA", Quantity: 18.00, Required_Delivery_Date: "2026-06-10", Remarks: "With manifold" }
+          ]
+        },
+        {
+          Enquiry_ID: "ATEQ260003", Created_By: "Manju", Enquiry_Date: "2026-03-24",
+          Enquiry_Title: "High Temperature Spiral Wound Gaskets & Stud Bolts",
+          Client_Name: "Target Engineering Construction", Client_Enquiry_Reference: "TEC-PR-7741",
+          Project_Name: "Ruwais Refinery Shutdown Package 3",
+          Requirement_Details: "ASME B16.20 Spiral Wound Gaskets SS316L/Graphite.",
+          Contact_Name: "Nabil Khoury", Contact_Email: "tenders@target.ae", Contact_Phone: "+971 2 671 2400",
+          Enquiry_Source: "Phone", Quotation_Due_Date: "2026-04-01", Enquiry_Status: "Won",
+          Final_Quoted_Amount: 64200.00, Margin_Percent: 24.20,
+          Last_Follow_Up_Date: "2026-03-29", Next_Follow_Up_Date: "2026-04-05",
+          Next_Action: "Receive LPO", Remarks: "Shutdown stock",
+          documents: [],
+          items: [
+            { Client_Item_Reference: "GSK-401", Item_Category: "Piping & Fasteners", Item_Description: "6 Inch Class 300 Spiral Wound Gasket", Detailed_Specification: "ASME B16.20 SS316L", Manufacturer_or_Brand: "Flexitallic", Model_or_Part_Number: "CGI-6-300", UOM: "EA", Quantity: 180.00, Required_Delivery_Date: "2026-04-12", Remarks: "Ex-stock" }
+          ]
+        }
+      ],
+      supplierQuotations: [
+        {
+          Supplier_Quotation_ID: "ATEQ260001/01", Created_By: "Bilal Kaleel", Revision_No: "0",
+          Client_Name: "ADNOC Onshore", Enquiry_ID: "ATEQ260001", Supplier_Name: "Swagelok Middle East FZE",
+          Supplier_Quotation_Reference: "SWG-QT-26-881", Quotation_Date: "2026-03-08", Received_Date: "2026-03-09",
+          Valid_Until: "2026-04-08", Payment_Terms: "60 Days Net", Delivery_Terms: "DDP Abu Dhabi", Delivery_Period: "4 Weeks",
+          Currency: "AED", Total_Quoted_Amount_Excl_VAT: 120000.00, Total_Quoted_Amount_Excl_VAT_AED: 120000.00,
+          Discount: 0.00, Discount_AED: 0.00, VAT_Applicable: true, VAT_Amount: 6000.00, VAT_Amount_AED: 6000.00,
+          Final_Quoted_Amount_Incl_VAT: 126000.00, Final_Quoted_Amount_Incl_VAT_AED: 126000.00,
+          Quotation_Status: "Accepted", Remarks: "Approved vendor quote", documents: ["Swagelok_Offer_881.pdf"],
+          items: [
+            { Line_No: 1, Item_Category: "Instrumentation", Item_Description: "1/2 Inch Male Connector SS316", Detailed_Specification: "1/2 OD x 1/2 NPT Male", Manufacturer_Name: "Swagelok", Brand: "Swagelok", Model_or_Part_Number: "SS-810-1-8", UOM: "EA", Currency: "AED", Quantity: 250.00, Unit_Price: 480.00, Line_Total_Excl_VAT: 120000.00, Line_Total_Excl_VAT_AED: 120000.00, Delivery_Period_Details: "4 Weeks", Expected_Delivery_Date: "2026-04-15", Remarks: "In stock" }
+          ]
+        }
+      ],
+      clientQuotations: [
+        {
+          Client_Quotation_ID: "ATCQ260001", Created_By: "Bilal Kaleel", Revision_No: "0",
+          Enquiry_ID: "ATEQ260001", Enquiry_Title: "Supply of SS316 Instrumentation Tube Fittings & Manifolds",
+          Client_Name: "ADNOC Onshore", Client_Code: "ATCL000001", Supplier_Quotation_ID: "ATEQ260001/01",
+          Quotation_Date: "2026-03-12", Submitted_Date: "2026-03-12", Currency: "AED", Valid_Until: "2026-04-12",
+          Payment_Terms: "30 Days from Invoice", Delivery_Terms: "DDP Habshan Site", Delivery_Period: "5 Weeks",
+          Quotation_Value_Excl_VAT: 148500.00, Quotation_Value_Excl_VAT_AED: 148500.00,
+          Discount: 0.00, Discount_AED: 0.00, VAT_Applicable: true, VAT_Amount: 7425.00, VAT_Amount_AED: 7425.00,
+          Final_Quotation_Value_Incl_VAT: 155925.00, Final_Quotation_Value_Incl_VAT_AED: 155925.00,
+          Margin_Percent: 18.50, Margin_Amount: 28500.00, Margin_Amount_AED: 28500.00,
+          Quotation_Status: "Accepted", Quotation_Document_Link: "https://drive.google.com/atom-cq-260001",
+          Remarks: "Commercial offer submitted via Ariba", documents: ["ATCQ260001_Commercial_Offer.pdf"],
+          items: [
+            { Line_No: 1, Item_Category: "Instrumentation", Item_Description: "1/2 Inch Male Connector SS316", Detailed_Specification: "1/2 OD x 1/2 NPT Male", Manufacturer_or_Brand: "Swagelok", Model_or_Part_Number: "SS-810-1-8", UOM: "EA", Quantity: 250.00, Unit_Price: 594.00, Line_Total_Excl_VAT: 148500.00, Line_Total_Excl_VAT_AED: 148500.00, Delivery_Period_Details: "5 Weeks", Remarks: "ADNOC Make" }
+          ]
+        }
+      ],
+      salesOrders: [
+        {
+          Sales_Order_ID: "ATSO260001", Created_By: "Bilal Kaleel", Revision_No: "0",
+          Client_PO_Date: "2026-03-20", Client_PO_Reference: "ADNOC-PO-5500912",
+          Client_PO_Title: "Supply of SS316 Instrumentation Tube Fittings",
+          Client_Quotation_ID: "ATCQ260001", Enquiry_ID: "ATEQ260001",
+          Client_Name: "ADNOC Onshore", Client_Code: "ATCL000001", Currency: "AED",
+          PO_Value_Excl_VAT: 148500.00, PO_Value_Excl_VAT_AED: 148500.00,
+          Discount: 0.00, Discount_AED: 0.00,
+          Net_Amount_Excl_VAT: 148500.00, Net_Amount_Excl_VAT_AED: 148500.00,
+          VAT_Applicable: true, VAT_Amount: 7425.00, VAT_Amount_AED: 7425.00,
+          Final_PO_Value_Incl_VAT: 155925.00, Final_PO_Value_Incl_VAT_AED: 155925.00,
+          Total_Invoiced: 155925.00, Total_Invoiced_AED: 155925.00,
+          Total_Payment_Received: 100000.00, Total_Payment_Received_AED: 100000.00,
+          Outstanding_Payment: 55925.00, Outstanding_Payment_AED: 55925.00,
+          Payment_Terms: "30 Days Net", Expected_Payment_Details: "Bank Wire Transfer",
+          Delivery_Terms: "DDP Site", Required_Delivery_Date: "2026-04-30",
+          PO_Status: "Issued / Received", Remarks: "Client PO received", documents: ["ADNOC_PO_5500912.pdf"],
+          items: [
+            { Order_Line_No: 1, Client_PO_Line_Reference: "PO-ITEM-10", Item_Category: "Instrumentation", Item_Description: "1/2 Inch Male Connector SS316", Detailed_Specification: "1/2 OD x 1/2 NPT Male", Manufacturer_or_Brand: "Swagelok", Model_or_Part_Number: "SS-810-1-8", UOM: "EA", Quantity: 250.00, Unit_Price: 594.00, Line_Total_Excl_VAT: 148500.00, Line_Total_Excl_VAT_AED: 148500.00, Required_Delivery_Date: "2026-04-30", Remarks: "" }
+          ]
+        }
+      ],
+      salesInvoices: [
+        {
+          Invoice_ID: "ATINV260001", Created_By: "Bilal Kaleel",
+          Sales_Order_ID: "ATSO260001", Invoice_Date: "2026-03-26", Submitted_Date: "2026-03-27", Due_Date: "2026-04-26",
+          Currency: "AED", Invoice_Value_Excl_VAT: 148500.00, Invoice_Value_Excl_VAT_AED: 148500.00,
+          VAT_Applicable: true, VAT_Amount: 7425.00, VAT_Amount_AED: 7425.00,
+          Invoice_Value_Incl_VAT: 155925.00, Invoice_Value_Incl_VAT_AED: 155925.00,
+          Amount_Received: 100000.00, Amount_Received_AED: 100000.00,
+          Outstanding_Amount: 55925.00, Outstanding_Amount_AED: 55925.00,
+          Invoice_Status: "Approved", Payment_Status: "Partially Paid",
+          Remarks: "First milestone payment received", documents: ["ATINV260001_Tax_Invoice.pdf"],
+          payments: [
+            { date: "2026-03-29", amount: 100000.00, reference: "ADNOC-TRF-99812" }
+          ]
+        }
+      ],
+      purchaseOrders: [
+        {
+          PO_ID: "ATPO260001", Created_By: "Bilal Kaleel", Revision_No: "0",
+          PO_Title: "Procurement of Swagelok SS316 Tube Fittings", PO_Type: "Material",
+          PO_Category: "Purchase – Client Order", Sales_Order_ID: "ATSO260001",
+          Supplier_Name: "Swagelok Middle East FZE", Supplier_Code: "ATSP000001",
+          PO_Date: "2026-03-21", Supplier_Quotation_ID: "ATEQ260001/01", Currency: "AED",
+          PO_Value_Excl_VAT: 120000.00, PO_Value_Excl_VAT_AED: 120000.00,
+          Discount: 0.00, Discount_AED: 0.00,
+          Net_Amount_Excl_VAT: 120000.00, Net_Amount_Excl_VAT_AED: 120000.00,
+          VAT_Applicable: true, VAT_Amount: 6000.00, VAT_Amount_AED: 6000.00,
+          Final_PO_Value_Incl_VAT: 126000.00, Final_PO_Value_Incl_VAT_AED: 126000.00,
+          Total_Invoiced: 126000.00, Total_Invoiced_AED: 126000.00,
+          Total_Paid: 60000.00, Total_Paid_AED: 60000.00,
+          Outstanding_Payable: 66000.00, Outstanding_Payable_AED: 66000.00,
+          Payment_Terms: "60 Days Net", Expected_Payment_Details: "Cheque / Wire",
+          Delivery_Terms: "DDP Warehouse", Expected_Delivery_Date: "2026-04-20",
+          PO_Status: "Issued / Received", Remarks: "Issued to Swagelok", documents: ["ATPO260001_Signed.pdf"],
+          items: [
+            { PO_Line_No: 1, Sales_Order_ID: "ATSO260001", Item_Category: "Instrumentation", Item_Description: "1/2 Inch Male Connector SS316", Detailed_Specification: "1/2 OD x 1/2 NPT Male", Manufacturer_or_Brand: "Swagelok", Model_or_Part_Number: "SS-810-1-8", UOM: "EA", Quantity: 250.00, Unit_Price: 480.00, Line_Total_Excl_VAT: 120000.00, Line_Total_Excl_VAT_AED: 120000.00, Expected_Delivery_Date: "2026-04-20", Remarks: "" }
+          ]
+        }
+      ],
+      purchaseInvoices: [
+        {
+          Supplier_Invoice_ID: "SPINV260001", Created_By: "Bilal Kaleel",
+          PO_ID: "ATPO260001", Sales_Order_ID: "ATSO260001 – Supply of SS316 Instrumentation Tube Fittings – ADNOC Onshore",
+          Invoice_Date: "2026-03-27", Received_Date: "2026-03-28", Due_Date: "2026-05-26",
+          Currency: "AED", Invoice_Value_Excl_VAT: 120000.00, Invoice_Value_Excl_VAT_AED: 120000.00,
+          VAT_Applicable: true, VAT_Amount: 6000.00, VAT_Amount_AED: 6000.00,
+          Invoice_Value_Incl_VAT: 126000.00, Invoice_Value_Incl_VAT_AED: 126000.00,
+          Amount_Paid: 60000.00, Amount_Paid_AED: 60000.00,
+          Outstanding_Payable: 66000.00, Outstanding_Payable_AED: 66000.00,
+          Invoice_Status: "Approved", Payment_Status: "Partially Paid",
+          Remarks: "50% advance paid", documents: ["Swagelok_INV_901.pdf"],
+          payments: [
+            { date: "2026-03-29", amount: 60000.00, reference: "WIRE-OUT-3321" }
+          ]
+        }
+      ]
+    };
+
+    let db = JSON.parse(JSON.stringify(SEED_DB));
+
+    // ==================== UTILITIES & DATE FORMATTER ====================
+    function formatDateDDMMMYYYY(isoStr) {
+      if (!isoStr || typeof isoStr !== "string") return "-";
+      const parts = isoStr.split("-");
+      if (parts.length !== 3) return isoStr;
+      const yyyy = parts[0];
+      const mmIdx = parseInt(parts[1], 10) - 1;
+      const dd = parts[2].padStart(2, "0");
+      if (isNaN(mmIdx) || mmIdx < 0 || mmIdx > 11) return isoStr;
+      return `${dd}/${MONTHS_SHORT[mmIdx]}/${yyyy}`;
+    }
+
+    function fmtNum(v) {
+      return (parseFloat(v) || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function getRate(curr) {
+      return RATES[curr] || 1;
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById("toast");
+      document.getElementById("toastMsg").textContent = msg;
+      t.classList.remove("hidden");
+      setTimeout(() => t.classList.add("hidden"), 3200);
+    }
+
+    function toggleSidebar() {
+      document.getElementById("appSidebar").classList.toggle("sidebar-collapsed");
+    }
+
+    // ==================== CONFIRMATION MODAL ====================
+    let pendingConfirmCallback = null;
+    function openConfirmModal(title, message, btnText, isDanger, onConfirm) {
+      document.getElementById("confirmTitle").textContent = title;
+      document.getElementById("confirmMessage").textContent = message;
+      const btn = document.getElementById("confirmProceedBtn");
+      const iconBox = document.getElementById("confirmIconBox");
+      btn.textContent = btnText || "Confirm";
+      if (isDanger) {
+        btn.className = "px-4 py-2 rounded-lg text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white shadow-sm";
+        iconBox.className = "w-10 h-10 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center font-bold text-base shrink-0";
+      } else {
+        btn.className = "px-4 py-2 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-sm";
+        iconBox.className = "w-10 h-10 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-base shrink-0";
+      }
+      pendingConfirmCallback = onConfirm;
+      document.getElementById("confirm-modal").classList.remove("hidden");
+    }
+
+    function closeConfirmModal() {
+      document.getElementById("confirm-modal").classList.add("hidden");
+      pendingConfirmCallback = null;
+    }
+
+    document.getElementById("confirmProceedBtn").addEventListener("click", () => {
+      const cb = pendingConfirmCallback;
+      closeConfirmModal();
+      if (typeof cb === "function") cb();
+    });
+
+    // ==================== NETLIFY CLOUD DATABASE SYNC ====================
+    function setSyncBadge(state) {
+      const b = document.getElementById("dbSyncBadge");
+      if (!b) return;
+      if (state === "syncing") {
+        b.className = "text-[11px] px-2.5 py-0.5 rounded-full font-semibold bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1.5";
+        b.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping"></span> Syncing to Netlify DB...`;
+      } else if (state === "cloud") {
+        b.className = "text-[11px] px-2.5 py-0.5 rounded-full font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1.5";
+        b.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Netlify Cloud DB Active`;
+      } else {
+        b.className = "text-[11px] px-2.5 py-0.5 rounded-full font-semibold bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1.5";
+        b.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span> Local Sync Ready`;
+      }
+    }
+
+    async function loadFromDatabase() {
+      const localSaved = localStorage.getItem("ATOM_ERP_DB_BACKUP_V1");
+      if (localSaved) {
+        try { db = JSON.parse(localSaved); } catch(e) {}
+      }
+      if (!authToken) return;
+      try {
+        setSyncBadge("syncing");
+        const res = await fetch("/.netlify/functions/api?action=load", {
+          headers: { "Authorization": `Bearer ${authToken}` }
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (json.empty) {
+            await saveToDatabase(true);
+          } else if (json.data) {
+            db = json.data;
+            localStorage.setItem("ATOM_ERP_DB_BACKUP_V1", JSON.stringify(db));
+          }
+          setSyncBadge("cloud");
+        } else {
+          setSyncBadge("local");
+        }
+      } catch (err) {
+        setSyncBadge("local");
+      }
+    }
+
+    async function saveToDatabase(isInitialSeed = false) {
+      recalculateAllRollups();
+      localStorage.setItem("ATOM_ERP_DB_BACKUP_V1", JSON.stringify(db));
+      if (!authToken) return;
+      try {
+        setSyncBadge("syncing");
+        const res = await fetch("/.netlify/functions/api?action=save", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${authToken}`
+          },
+          body: JSON.stringify({ data: db, isInitialSeed })
+        });
+        if (res.ok) {
+          setSyncBadge("cloud");
+        } else {
+          setSyncBadge("local");
+        }
+      } catch (e) {
+        setSyncBadge("local");
+      }
+    }
+
+    // ==================== AUTHENTICATION ====================
+    async function handleLogin() {
+      const u = document.getElementById("login_username").value.trim().toLowerCase();
+      const p = document.getElementById("login_password").value;
+      const err = document.getElementById("loginError");
+      const btn = document.getElementById("loginSubmitBtn");
+      err.classList.add("hidden");
+      btn.textContent = "Signing In...";
+
+      try {
+        const res = await fetch("/.netlify/functions/api?action=login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: u, password: p })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          authToken = data.token;
+          activeUser = data.user;
+          sessionStorage.setItem("ATOM_NETLIFY_TOKEN", authToken);
+          sessionStorage.setItem("ATOM_NETLIFY_USER", JSON.stringify(activeUser));
+          await loadFromDatabase();
+          finishLoginUI();
+          btn.textContent = "Sign In";
+          return;
+        } else if (res.status === 401) {
+          err.classList.remove("hidden");
+          btn.textContent = "Sign In";
+          return;
+        }
+      } catch (networkErr) {
+        // Fallback if opened locally before Netlify deploy
+      }
+
+      const localUsers = getLocalUsersMap();
+      if (localUsers[u] && localUsers[u].password === p) {
+        activeUser = { username: u, ...localUsers[u] };
+        authToken = "local-token-" + u;
+        sessionStorage.setItem("ATOM_NETLIFY_TOKEN", authToken);
+        sessionStorage.setItem("ATOM_NETLIFY_USER", JSON.stringify(activeUser));
+        await loadFromDatabase();
+        finishLoginUI();
+      } else {
+        err.classList.remove("hidden");
+      }
+      btn.textContent = "Sign In";
+    }
+
+    function finishLoginUI() {
+      document.getElementById("login-screen").classList.add("hidden");
+      document.getElementById("headerUserAvatar").textContent = activeUser.initials;
+      document.getElementById("headerUserName").textContent = activeUser.displayName;
+      document.getElementById("headerUserRole").textContent = activeUser.role === "admin" ? "Administrator (All Data)" : "Employee";
+      if (activeUser.role === "admin") {
+        document.getElementById("adminFilterWrap").classList.remove("hidden");
+      } else {
+        document.getElementById("adminFilterWrap").classList.add("hidden");
+      }
+      switchModule("enquiries");
+      showToast(`Signed in as ${activeUser.displayName}`);
+    }
+
+    
+    // ==================== CHANGE PASSWORD HANDLERS ====================
+    function getLocalUsersMap() {
+      const saved = localStorage.getItem("ATOM_ERP_LOCAL_USERS_V1");
+      if (saved) {
+        try { return JSON.parse(saved); } catch (e) {}
+      }
+      return JSON.parse(JSON.stringify(FALLBACK_USERS));
+    }
+
+    function openPasswordModal() {
+      document.getElementById("cp_old").value = "";
+      document.getElementById("cp_new").value = "";
+      document.getElementById("cp_confirm").value = "";
+      const err = document.getElementById("pwdModalError");
+      err.classList.add("hidden");
+      err.textContent = "";
+      document.getElementById("password-modal").classList.remove("hidden");
+    }
+
+    function closePasswordModal() {
+      document.getElementById("password-modal").classList.add("hidden");
+    }
+
+    async function submitChangePassword() {
+      const oldPassword = document.getElementById("cp_old").value;
+      const newPassword = document.getElementById("cp_new").value;
+      const confirmPassword = document.getElementById("cp_confirm").value;
+      const err = document.getElementById("pwdModalError");
+      const btn = document.getElementById("cpSubmitBtn");
+
+      err.classList.add("hidden");
+
+      if (newPassword !== confirmPassword) {
+        err.textContent = "New Password and Confirm Password do not match.";
+        err.classList.remove("hidden");
+        return;
+      }
+
+      if (newPassword.length < 4) {
+        err.textContent = "New password must be at least 4 characters.";
+        err.classList.remove("hidden");
+        return;
+      }
+
+      btn.textContent = "Updating...";
+
+      try {
+        const res = await fetch("/.netlify/functions/api?action=change-password", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${authToken}`
+          },
+          body: JSON.stringify({ oldPassword, newPassword })
+        });
+        const data = await res.json();
+        if (res.ok && data.ok) {
+          // Also sync local fallback copy
+          const localUsers = getLocalUsersMap();
+          if (activeUser && localUsers[activeUser.username]) {
+            localUsers[activeUser.username].password = newPassword;
+            localStorage.setItem("ATOM_ERP_LOCAL_USERS_V1", JSON.stringify(localUsers));
+          }
+          btn.textContent = "Update Password";
+          closePasswordModal();
+          showToast("Password updated successfully in Netlify Cloud Database!");
+          return;
+        } else {
+          err.textContent = data.error || "Failed to update password.";
+          err.classList.remove("hidden");
+          btn.textContent = "Update Password";
+          return;
+        }
+      } catch (networkErr) {
+        // Offline / local preview fallback
+        const localUsers = getLocalUsersMap();
+        const uKey = activeUser?.username;
+        if (uKey && localUsers[uKey] && localUsers[uKey].password === oldPassword) {
+          localUsers[uKey].password = newPassword;
+          localStorage.setItem("ATOM_ERP_LOCAL_USERS_V1", JSON.stringify(localUsers));
+          btn.textContent = "Update Password";
+          closePasswordModal();
+          showToast("Password updated successfully!");
+          return;
+        } else {
+          err.textContent = "Current password is incorrect.";
+          err.classList.remove("hidden");
+        }
+      }
+
+      btn.textContent = "Update Password";
+    }
+
+    function handleLogout() {
+      sessionStorage.removeItem("ATOM_NETLIFY_TOKEN");
+      sessionStorage.removeItem("ATOM_NETLIFY_USER");
+      activeUser = null;
+      authToken = null;
+      document.getElementById("login_username").value = "";
+      document.getElementById("login_password").value = "";
+      document.getElementById("login-screen").classList.remove("hidden");
+    }
+    // ==================== ROLLUP ENGINE (SO, PO, INVOICES, ENQUIRIES) ====================
+    function recalculateAllRollups() {
+      // 1. Update Enquiries from Client Quotations
+      (db.clientQuotations || []).forEach(cq => {
+        const enq = (db.enquiries || []).find(e => e.Enquiry_ID === cq.Enquiry_ID);
+        if (enq) {
+          enq.Final_Quoted_Amount = parseFloat(cq.Final_Quotation_Value_Incl_VAT_AED) || 0;
+          enq.Margin_Percent = parseFloat(cq.Margin_Percent) || 0;
+        }
+      });
+
+      // 2. Update Sales Orders from Sales Invoices
+      (db.salesOrders || []).forEach(so => {
+        const linkedInvs = (db.salesInvoices || []).filter(inv => inv.Sales_Order_ID === so.Sales_Order_ID && inv.Invoice_Status !== "Cancelled");
+        const totInv = linkedInvs.reduce((s, i) => s + (parseFloat(i.Invoice_Value_Incl_VAT) || 0), 0);
+        const totPay = linkedInvs.reduce((s, i) => s + (parseFloat(i.Amount_Received) || 0), 0);
+        const outPay = Math.max(0, totInv - totPay);
+        const r = getRate(so.Currency);
+        so.Total_Invoiced = totInv;
+        so.Total_Invoiced_AED = totInv * r;
+        so.Total_Payment_Received = totPay;
+        so.Total_Payment_Received_AED = totPay * r;
+        so.Outstanding_Payment = outPay;
+        so.Outstanding_Payment_AED = outPay * r;
+      });
+
+      // 3. Update Purchase Orders from Purchase Invoices
+      (db.purchaseOrders || []).forEach(po => {
+        const linkedPInvs = (db.purchaseInvoices || []).filter(pi => pi.PO_ID === po.PO_ID && pi.Invoice_Status !== "Cancelled");
+        const totInv = linkedPInvs.reduce((s, i) => s + (parseFloat(i.Invoice_Value_Incl_VAT) || 0), 0);
+        const totPaid = linkedPInvs.reduce((s, i) => s + (parseFloat(i.Amount_Paid) || 0), 0);
+        const outPay = Math.max(0, totInv - totPaid);
+        const r = getRate(po.Currency);
+        po.Total_Invoiced = totInv;
+        po.Total_Invoiced_AED = totInv * r;
+        po.Total_Paid = totPaid;
+        po.Total_Paid_AED = totPaid * r;
+        po.Outstanding_Payable = outPay;
+        po.Outstanding_Payable_AED = outPay * r;
+      });
+    }
+
+    // ==================== ID GENERATORS ====================
+    function genRunningID(prefixBase, dateStr, arr, keyField) {
+      const yy = dateStr && dateStr.length >= 4 ? dateStr.substring(2, 4) : "26";
+      const prefix = `${prefixBase}${yy}`;
+      let max = 0;
+      (arr || []).forEach(r => {
+        const id = r[keyField] || "";
+        if (id.startsWith(prefix)) {
+          const n = parseInt(id.substring(prefix.length), 10);
+          if (!isNaN(n) && n > max) max = n;
+        }
+      });
+      return `${prefix}${String(max + 1).padStart(4, "0")}`;
+    }
+
+    function genMasterCode(prefix, arr) {
+      let max = 0;
+      (arr || []).forEach(r => {
+        const c = r.code || "";
+        if (c.startsWith(prefix)) {
+          const n = parseInt(c.substring(prefix.length), 10);
+          if (!isNaN(n) && n > max) max = n;
+        }
+      });
+      return `${prefix}${String(max + 1).padStart(6, "0")}`;
+    }
+
+    function genSupplierQuotationID(enqId) {
+      if (!enqId) return "ATEQ260001/01";
+      const prefix = `${enqId}/`;
+      let max = 0;
+      (db.supplierQuotations || []).forEach(sq => {
+        if ((sq.Supplier_Quotation_ID || "").startsWith(prefix)) {
+          const n = parseInt(sq.Supplier_Quotation_ID.substring(prefix.length), 10);
+          if (!isNaN(n) && n > max) max = n;
+        }
+      });
+      return `${prefix}${String(max + 1).padStart(2, "0")}`;
+    }
+
+    function genClientQuotationID(enqId) {
+      if (!enqId || enqId.length < 6) return "ATCQ260001";
+      return "ATCQ" + enqId.slice(-6);
+    }
+
+    // ==================== NAVIGATION & UNSAVED CHANGES GUARD ====================
+    const MODULE_TITLES = {
+      enquiries: "1. Enquiry Register",
+      supplierQuotations: "2. Supplier Quotations",
+      clientQuotations: "3. Client Quotations",
+      salesOrders: "4. Sales Orders",
+      salesInvoices: "5. Sales Invoices",
+      purchaseOrders: "6. Purchase Orders",
+      purchaseInvoices: "7. Purchase Invoices",
+      clients: "8. Client Master",
+      suppliers: "9. Supplier Master"
+    };
+
+    function requestModuleSwitch(mod) {
+      if (!document.getElementById("workspace-form").classList.contains("hidden") && formMode !== "view" && formDirty) {
+        openConfirmModal(
+          "Discard Unsaved Changes?",
+          "You have unsaved changes in this form. Switching modules will discard your changes.",
+          "Discard Changes",
+          true,
+          () => { formDirty = false; switchModule(mod); }
+        );
+      } else {
+        switchModule(mod);
+      }
+    }
+
+    function handleBackClick() {
+      if (formMode !== "view" && formDirty) {
+        openConfirmModal(
+          "Discard Unsaved Changes?",
+          "Your changes have not been saved. Are you sure you want to go back and discard changes?",
+          "Discard & Go Back",
+          true,
+          () => { formDirty = false; closeRecordForm(); }
+        );
+      } else {
+        closeRecordForm();
+      }
+    }
+
+    function switchModule(mod) {
+      currentModule = mod;
+      formDirty = false;
+      Object.keys(MODULE_TITLES).forEach(k => {
+        const btn = document.getElementById("nav-" + k);
+        if (btn) {
+          btn.className = k === mod
+            ? "w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg font-medium transition bg-blue-600 text-white shadow"
+            : "w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg font-medium transition text-slate-300 hover:bg-slate-900";
+        }
+      });
+      document.getElementById("topHeaderTitle").textContent = MODULE_TITLES[mod] || "Register";
+      closeRecordForm();
+    }
+
+    function closeRecordForm() {
+      document.getElementById("workspace-form").classList.add("hidden");
+      document.getElementById("workspace-listing").classList.remove("hidden");
+      renderListingView();
+    }
+
+    function getVisibleCollection(mod) {
+      const list = db[mod] || [];
+      if (mod === "clients" || mod === "suppliers") return list;
+      if (!activeUser) return [];
+      if (activeUser.role === "admin") {
+        const f = document.getElementById("globalEmployeeFilter")?.value || "ALL";
+        return f === "ALL" ? list : list.filter(r => r.Created_By === f);
+      }
+      return list.filter(r => r.Created_By === activeUser.displayName);
+    }
+
+    // ==================== LISTING RENDERER ====================
+    function renderListingView() {
+      recalculateAllRollups();
+      const rows = getVisibleCollection(currentModule);
+      const q = (document.getElementById("listSearchInput")?.value || "").toLowerCase();
+      const filtered = rows.filter(r => JSON.stringify(r).toLowerCase().includes(q));
+
+      const thead = document.getElementById("listingTableHead");
+      const tbody = document.getElementById("listingTableBody");
+      const kpiBar = document.getElementById("kpiBar");
+      const showEmp = activeUser && activeUser.role === "admin" && !["clients", "suppliers"].includes(currentModule);
+
+      // Render KPIs
+      kpiBar.innerHTML = `
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+          <div class="text-[11px] font-semibold text-slate-400 uppercase">Total Records</div>
+          <div class="text-2xl font-bold text-slate-900 mt-1">${filtered.length}</div>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+          <div class="text-[11px] font-semibold text-slate-400 uppercase">Active Module</div>
+          <div class="text-sm font-bold text-blue-600 mt-2 truncate">${MODULE_TITLES[currentModule]}</div>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+          <div class="text-[11px] font-semibold text-slate-400 uppercase">Logged-In User</div>
+          <div class="text-sm font-bold text-slate-800 mt-2">${activeUser ? activeUser.displayName : "-"}</div>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+          <div class="text-[11px] font-semibold text-slate-400 uppercase">Date Display Format</div>
+          <div class="text-sm font-bold text-emerald-700 mono mt-2">${formatDateDDMMMYYYY(new Date().toISOString().split("T")[0])}</div>
+        </div>
+      `;
+
+      const empTh = showEmp ? `<th class="py-3 px-4">Employee</th>` : "";
+      const actionBtns = (realIdx) => `
+        <td class="py-3 px-4 text-right whitespace-nowrap space-x-1.5">
+          <button onclick="openRecordForm(${realIdx}, 'view')" class="px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold border border-slate-300">View</button>
+          <button onclick="openRecordForm(${realIdx}, 'edit')" class="px-2.5 py-1 rounded bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold border border-blue-200">Edit</button>
+        </td>
+      `;
+
+      if (currentModule === "enquiries") {
+        thead.innerHTML = `<tr><th class="py-3 px-4">Enquiry_ID</th><th class="py-3 px-4">Enquiry_Title</th><th class="py-3 px-4">Client_Name</th>${empTh}<th class="py-3 px-4">Enquiry_Date</th><th class="py-3 px-4">Enquiry_Status</th><th class="py-3 px-4 text-right">Final_Quoted_Amount (AED)</th><th class="py-3 px-4 text-right">Margin%</th><th class="py-3 px-4 text-right">Action</th></tr>`;
+        tbody.innerHTML = filtered.map(r => {
+          const idx = db.enquiries.indexOf(r);
+          return `<tr class="hover:bg-slate-50"><td class="py-3 px-4 mono font-bold text-blue-700">${r.Enquiry_ID}</td><td class="py-3 px-4 font-semibold">${r.Enquiry_Title}</td><td class="py-3 px-4">${r.Client_Name}</td>${showEmp ? `<td class="py-3 px-4 font-semibold">${r.Created_By || '-'}</td>` : ''}<td class="py-3 px-4 mono">${formatDateDDMMMYYYY(r.Enquiry_Date)}</td><td class="py-3 px-4"><span class="px-2 py-0.5 rounded-full text-[11px] bg-blue-50 text-blue-700 font-semibold border border-blue-200">${r.Enquiry_Status}</span></td><td class="py-3 px-4 text-right mono font-semibold">${fmtNum(r.Final_Quoted_Amount)}</td><td class="py-3 px-4 text-right mono text-emerald-700 font-semibold">${(parseFloat(r.Margin_Percent)||0).toFixed(2)}%</td>${actionBtns(idx)}</tr>`;
+        }).join("");
+      } else if (currentModule === "supplierQuotations") {
+        thead.innerHTML = `<tr><th class="py-3 px-4">Supplier_Quotation_ID</th><th class="py-3 px-4">Enquiry_ID</th><th class="py-3 px-4">Client_Name</th><th class="py-3 px-4">Supplier_Name</th>${empTh}<th class="py-3 px-4">Quotation_Date</th><th class="py-3 px-4">Currency</th><th class="py-3 px-4 text-right">Final_Quoted_Incl_VAT (AED)</th><th class="py-3 px-4">Status</th><th class="py-3 px-4 text-right">Action</th></tr>`;
+        tbody.innerHTML = filtered.map(r => {
+          const idx = db.supplierQuotations.indexOf(r);
+          return `<tr class="hover:bg-slate-50"><td class="py-3 px-4 mono font-bold text-blue-700">${r.Supplier_Quotation_ID}</td><td class="py-3 px-4 mono">${r.Enquiry_ID}</td><td class="py-3 px-4">${r.Client_Name}</td><td class="py-3 px-4 font-semibold">${r.Supplier_Name}</td>${showEmp ? `<td class="py-3 px-4 font-semibold">${r.Created_By || '-'}</td>` : ''}<td class="py-3 px-4 mono">${formatDateDDMMMYYYY(r.Quotation_Date)}</td><td class="py-3 px-4 mono">${r.Currency}</td><td class="py-3 px-4 text-right mono font-semibold">${fmtNum(r.Final_Quoted_Amount_Incl_VAT_AED)}</td><td class="py-3 px-4"><span class="px-2 py-0.5 rounded-full text-[11px] bg-slate-100 font-semibold">${r.Quotation_Status}</span></td>${actionBtns(idx)}</tr>`;
+        }).join("");
+      } else if (currentModule === "clientQuotations") {
+        thead.innerHTML = `<tr><th class="py-3 px-4">Client_Quotation_ID</th><th class="py-3 px-4">Enquiry_ID</th><th class="py-3 px-4">Client_Name</th>${empTh}<th class="py-3 px-4">Quotation_Date</th><th class="py-3 px-4">Currency</th><th class="py-3 px-4 text-right">Final_Value_Incl_VAT (AED)</th><th class="py-3 px-4 text-right">Margin%</th><th class="py-3 px-4">Status</th><th class="py-3 px-4 text-right">Action</th></tr>`;
+        tbody.innerHTML = filtered.map(r => {
+          const idx = db.clientQuotations.indexOf(r);
+          return `<tr class="hover:bg-slate-50"><td class="py-3 px-4 mono font-bold text-blue-700">${r.Client_Quotation_ID}</td><td class="py-3 px-4 mono">${r.Enquiry_ID}</td><td class="py-3 px-4 font-semibold">${r.Client_Name}</td>${showEmp ? `<td class="py-3 px-4 font-semibold">${r.Created_By || '-'}</td>` : ''}<td class="py-3 px-4 mono">${formatDateDDMMMYYYY(r.Quotation_Date)}</td><td class="py-3 px-4 mono">${r.Currency}</td><td class="py-3 px-4 text-right mono font-semibold">${fmtNum(r.Final_Quotation_Value_Incl_VAT_AED)}</td><td class="py-3 px-4 text-right mono text-emerald-700 font-semibold">${(parseFloat(r.Margin_Percent)||0).toFixed(2)}%</td><td class="py-3 px-4"><span class="px-2 py-0.5 rounded-full text-[11px] bg-blue-50 text-blue-700 font-semibold">${r.Quotation_Status}</span></td>${actionBtns(idx)}</tr>`;
+        }).join("");
+      } else if (currentModule === "salesOrders") {
+        thead.innerHTML = `<tr><th class="py-3 px-4">Sales_Order_ID</th><th class="py-3 px-4">Client_PO_Title</th><th class="py-3 px-4">Client_Name</th>${empTh}<th class="py-3 px-4">Client_PO_Date</th><th class="py-3 px-4 text-right">Final_PO_Incl_VAT (AED)</th><th class="py-3 px-4 text-right">Total_Invoiced (AED)</th><th class="py-3 px-4 text-right">Outstanding (AED)</th><th class="py-3 px-4">PO_Status</th><th class="py-3 px-4 text-right">Action</th></tr>`;
+        tbody.innerHTML = filtered.map(r => {
+          const idx = db.salesOrders.indexOf(r);
+          return `<tr class="hover:bg-slate-50"><td class="py-3 px-4 mono font-bold text-blue-700">${r.Sales_Order_ID}</td><td class="py-3 px-4 font-semibold">${r.Client_PO_Title}</td><td class="py-3 px-4">${r.Client_Name}</td>${showEmp ? `<td class="py-3 px-4 font-semibold">${r.Created_By || '-'}</td>` : ''}<td class="py-3 px-4 mono">${formatDateDDMMMYYYY(r.Client_PO_Date)}</td><td class="py-3 px-4 text-right mono font-semibold">${fmtNum(r.Final_PO_Value_Incl_VAT_AED)}</td><td class="py-3 px-4 text-right mono">${fmtNum(r.Total_Invoiced_AED)}</td><td class="py-3 px-4 text-right mono text-rose-600 font-semibold">${fmtNum(r.Outstanding_Payment_AED)}</td><td class="py-3 px-4"><span class="px-2 py-0.5 rounded-full text-[11px] bg-emerald-50 text-emerald-700 font-semibold">${r.PO_Status}</span></td>${actionBtns(idx)}</tr>`;
+        }).join("");
+      } else if (currentModule === "salesInvoices") {
+        thead.innerHTML = `<tr><th class="py-3 px-4">Invoice_ID</th><th class="py-3 px-4">Sales_Order_ID</th>${empTh}<th class="py-3 px-4">Invoice_Date</th><th class="py-3 px-4 text-right">Incl_VAT (AED)</th><th class="py-3 px-4 text-right">Received (AED)</th><th class="py-3 px-4 text-right">Outstanding (AED)</th><th class="py-3 px-4">Payment_Status</th><th class="py-3 px-4 text-right">Action</th></tr>`;
+        tbody.innerHTML = filtered.map(r => {
+          const idx = db.salesInvoices.indexOf(r);
+          return `<tr class="hover:bg-slate-50"><td class="py-3 px-4 mono font-bold text-blue-700">${r.Invoice_ID}</td><td class="py-3 px-4 mono">${r.Sales_Order_ID}</td>${showEmp ? `<td class="py-3 px-4 font-semibold">${r.Created_By || '-'}</td>` : ''}<td class="py-3 px-4 mono">${formatDateDDMMMYYYY(r.Invoice_Date)}</td><td class="py-3 px-4 text-right mono font-semibold">${fmtNum(r.Invoice_Value_Incl_VAT_AED)}</td><td class="py-3 px-4 text-right mono text-emerald-700 font-semibold">${fmtNum(r.Amount_Received_AED)}</td><td class="py-3 px-4 text-right mono text-rose-600 font-semibold">${fmtNum(r.Outstanding_Amount_AED)}</td><td class="py-3 px-4"><span class="px-2 py-0.5 rounded-full text-[11px] bg-amber-50 text-amber-800 font-semibold">${r.Payment_Status}</span></td>${actionBtns(idx)}</tr>`;
+        }).join("");
+      } else if (currentModule === "purchaseOrders") {
+        thead.innerHTML = `<tr><th class="py-3 px-4">PO_ID</th><th class="py-3 px-4">PO_Title</th><th class="py-3 px-4">PO_Category</th><th class="py-3 px-4">Supplier_Name</th>${empTh}<th class="py-3 px-4">PO_Date</th><th class="py-3 px-4 text-right">Final_PO_Incl_VAT (AED)</th><th class="py-3 px-4 text-right">Outstanding_Payable (AED)</th><th class="py-3 px-4">PO_Status</th><th class="py-3 px-4 text-right">Action</th></tr>`;
+        tbody.innerHTML = filtered.map(r => {
+          const idx = db.purchaseOrders.indexOf(r);
+          return `<tr class="hover:bg-slate-50"><td class="py-3 px-4 mono font-bold text-blue-700">${r.PO_ID}</td><td class="py-3 px-4 font-semibold">${r.PO_Title}</td><td class="py-3 px-4">${r.PO_Category}</td><td class="py-3 px-4">${r.Supplier_Name}</td>${showEmp ? `<td class="py-3 px-4 font-semibold">${r.Created_By || '-'}</td>` : ''}<td class="py-3 px-4 mono">${formatDateDDMMMYYYY(r.PO_Date)}</td><td class="py-3 px-4 text-right mono font-semibold">${fmtNum(r.Final_PO_Value_Incl_VAT_AED)}</td><td class="py-3 px-4 text-right mono text-rose-600 font-semibold">${fmtNum(r.Outstanding_Payable_AED)}</td><td class="py-3 px-4"><span class="px-2 py-0.5 rounded-full text-[11px] bg-blue-50 text-blue-700 font-semibold">${r.PO_Status}</span></td>${actionBtns(idx)}</tr>`;
+        }).join("");
+      } else if (currentModule === "purchaseInvoices") {
+        thead.innerHTML = `<tr><th class="py-3 px-4">Supplier_Invoice_ID</th><th class="py-3 px-4">PO_ID</th><th class="py-3 px-4">Sales_Order_ID</th>${empTh}<th class="py-3 px-4">Invoice_Date</th><th class="py-3 px-4 text-right">Incl_VAT (AED)</th><th class="py-3 px-4 text-right">Amount_Paid (AED)</th><th class="py-3 px-4 text-right">Outstanding_Payable (AED)</th><th class="py-3 px-4">Payment_Status</th><th class="py-3 px-4 text-right">Action</th></tr>`;
+        tbody.innerHTML = filtered.map(r => {
+          const idx = db.purchaseInvoices.indexOf(r);
+          return `<tr class="hover:bg-slate-50"><td class="py-3 px-4 mono font-bold text-blue-700">${r.Supplier_Invoice_ID}</td><td class="py-3 px-4 mono">${r.PO_ID}</td><td class="py-3 px-4 truncate max-w-xs">${r.Sales_Order_ID}</td>${showEmp ? `<td class="py-3 px-4 font-semibold">${r.Created_By || '-'}</td>` : ''}<td class="py-3 px-4 mono">${formatDateDDMMMYYYY(r.Invoice_Date)}</td><td class="py-3 px-4 text-right mono font-semibold">${fmtNum(r.Invoice_Value_Incl_VAT_AED)}</td><td class="py-3 px-4 text-right mono text-emerald-700 font-semibold">${fmtNum(r.Amount_Paid_AED)}</td><td class="py-3 px-4 text-right mono text-rose-600 font-semibold">${fmtNum(r.Outstanding_Payable_AED)}</td><td class="py-3 px-4"><span class="px-2 py-0.5 rounded-full text-[11px] bg-amber-50 text-amber-800 font-semibold">${r.Payment_Status}</span></td>${actionBtns(idx)}</tr>`;
+        }).join("");
+      } else if (currentModule === "clients") {
+        thead.innerHTML = `<tr><th class="py-3 px-4">Client_Code</th><th class="py-3 px-4">Client_Name</th><th class="py-3 px-4">Client Type</th><th class="py-3 px-4">City/Emirate</th><th class="py-3 px-4">Contact_Name</th><th class="py-3 px-4">VAT Applicable</th><th class="py-3 px-4">Status</th><th class="py-3 px-4 text-right">Action</th></tr>`;
+        tbody.innerHTML = filtered.map(r => {
+          const idx = db.clients.indexOf(r);
+          return `<tr class="hover:bg-slate-50"><td class="py-3 px-4 mono font-bold text-blue-700">${r.code}</td><td class="py-3 px-4 font-semibold">${r.name}</td><td class="py-3 px-4">${r.type}</td><td class="py-3 px-4">${r.city}</td><td class="py-3 px-4">${r.contact}</td><td class="py-3 px-4 font-semibold">${r.vatApplicable || 'Yes'}</td><td class="py-3 px-4"><span class="px-2 py-0.5 rounded-full text-[11px] bg-emerald-50 text-emerald-700 font-semibold">${r.status}</span></td>${actionBtns(idx)}</tr>`;
+        }).join("");
+      } else if (currentModule === "suppliers") {
+        thead.innerHTML = `<tr><th class="py-3 px-4">Supplier_Code</th><th class="py-3 px-4">Supplier_Name</th><th class="py-3 px-4">Category</th><th class="py-3 px-4">City</th><th class="py-3 px-4">Contact</th><th class="py-3 px-4">VAT Applicable</th><th class="py-3 px-4">Status</th><th class="py-3 px-4 text-right">Action</th></tr>`;
+        tbody.innerHTML = filtered.map(r => {
+          const idx = db.suppliers.indexOf(r);
+          return `<tr class="hover:bg-slate-50"><td class="py-3 px-4 mono font-bold text-blue-700">${r.code}</td><td class="py-3 px-4 font-semibold">${r.name}</td><td class="py-3 px-4">${r.category || '-'}</td><td class="py-3 px-4">${r.city || '-'}</td><td class="py-3 px-4 mono">${r.contact || '-'}</td><td class="py-3 px-4 font-semibold">${r.vatApplicable || 'Yes'}</td><td class="py-3 px-4"><span class="px-2 py-0.5 rounded-full text-[11px] bg-emerald-50 text-emerald-700 font-semibold">${r.status}</span></td>${actionBtns(idx)}</tr>`;
+        }).join("");
+      }
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="12" class="py-8 text-center text-slate-400">No records found. Click "+ Add New Record" to create one.</td></tr>`;
+      }
+    }
+    // ==================== FORM BUILDER HELPERS ====================
+    function markDirty() {
+      if (formMode !== "view") formDirty = true;
+    }
+
+    function fInput(id, label, val = "", type = "text", readonly = false, extraAttrs = "") {
+      const isRO = readonly || formMode === "view";
+      const roCls = isRO ? "bg-slate-100 text-slate-700 cursor-not-allowed" : "bg-white";
+      const datePreview = type === "date" ? `<span id="dp_${id}" class="text-[11px] mono font-semibold text-blue-700">${val ? formatDateDDMMMYYYY(val) : ''}</span>` : "";
+      const onChg = type === "date"
+        ? `onchange="markDirty(); document.getElementById('dp_${id}').textContent = this.value ? formatDateDDMMMYYYY(this.value) : '';"`
+        : `oninput="markDirty();"`;
+      return `
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="text-xs font-semibold text-slate-700">${label}</label>
+            ${datePreview}
+          </div>
+          <input type="${type}" id="${id}" value="${val ?? ''}" ${isRO ? 'readonly' : ''} ${onChg} ${extraAttrs} class="w-full text-xs border border-slate-300 rounded-lg px-3 py-2 ${roCls} focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+      `;
+    }
+
+    function fSelect(id, label, options, selectedVal = "", disabled = false, onChangeJs = "") {
+      const isDis = disabled || formMode === "view";
+      const optsHtml = options.map(o => {
+        const val = typeof o === "object" ? o.value : o;
+        const txt = typeof o === "object" ? o.label : o;
+        return `<option value="${val}" ${String(val) === String(selectedVal) ? 'selected' : ''}>${txt}</option>`;
+      }).join("");
+      return `
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">${label}</label>
+          <select id="${id}" ${isDis ? 'disabled' : ''} onchange="markDirty(); ${onChangeJs}" class="w-full text-xs border border-slate-300 rounded-lg px-3 py-2 ${isDis ? 'bg-slate-100 cursor-not-allowed' : 'bg-white'} focus:outline-none focus:ring-2 focus:ring-blue-500">
+            ${optsHtml}
+          </select>
+        </div>
+      `;
+    }
+
+    function renderAttachmentsSection() {
+      const isRO = formMode === "view";
+      const chips = tempAttachments.map((name, i) => `
+        <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-800 border border-blue-200">
+          <span>📄 ${name}</span>
+          ${!isRO ? `<button type="button" onclick="removeAttachment(${i})" class="text-rose-600 font-bold hover:text-rose-800">✕</button>` : ''}
+        </span>
+      `).join("");
+      return `
+        <div class="bg-white rounded-xl border border-slate-200 p-5 space-y-3">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-800">Attached Documents</h4>
+            ${!isRO ? `
+              <label class="cursor-pointer text-xs font-semibold px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-900 text-white">
+                + Browse & Attach Files
+                <input type="file" multiple class="hidden" onchange="handleFilesSelected(this)" />
+              </label>
+            ` : ''}
+          </div>
+          <div id="attachmentsList" class="flex flex-wrap gap-2 pt-1">
+            ${chips || `<span class="text-xs text-slate-400">No documents attached.</span>`}
+          </div>
+        </div>
+      `;
+    }
+
+    function handleFilesSelected(input) {
+      if (!input.files) return;
+      Array.from(input.files).forEach(f => {
+        if (!tempAttachments.includes(f.name)) tempAttachments.push(f.name);
+      });
+      markDirty();
+      refreshAttachmentsDOM();
+    }
+
+    function removeAttachment(idx) {
+      tempAttachments.splice(idx, 1);
+      markDirty();
+      refreshAttachmentsDOM();
+    }
+
+    function refreshAttachmentsDOM() {
+      const wrap = document.getElementById("attachmentsWrap");
+      if (wrap) wrap.innerHTML = renderAttachmentsSection();
+    }
+
+    function switchViewToEditMode() {
+      openRecordForm(editingIdx, "edit");
+    }
+
+    function getClientVatSetting(clientName) {
+      const c = (db.clients || []).find(x => x.name === clientName);
+      return c ? c.vatApplicable !== "No" : true;
+    }
+
+    function getSupplierVatSetting(suppName) {
+      const s = (db.suppliers || []).find(x => x.name === suppName);
+      return s ? s.vatApplicable !== "No" : true;
+    }
+
+    // ==================== OPEN RECORD FORM (CREATE / EDIT / VIEW) ====================
+    function openRecordForm(idx, mode = "create") {
+      editingIdx = idx;
+      formMode = mode;
+      formDirty = false;
+
+      document.getElementById("workspace-listing").classList.add("hidden");
+      document.getElementById("workspace-form").classList.remove("hidden");
+
+      const saveBtn = document.getElementById("formSaveBtn");
+      const editSwitchBtn = document.getElementById("switchToEditBtn");
+      if (mode === "view") {
+        saveBtn.classList.add("hidden");
+        editSwitchBtn.classList.remove("hidden");
+      } else {
+        saveBtn.classList.remove("hidden");
+        editSwitchBtn.classList.add("hidden");
+      }
+
+      const today = new Date().toISOString().split("T")[0];
+      const coll = db[currentModule] || [];
+      const rec = idx !== null && coll[idx] ? JSON.parse(JSON.stringify(coll[idx])) : null;
+
+      tempAttachments = rec && Array.isArray(rec.documents) ? [...rec.documents] : [];
+      tempItems = rec && Array.isArray(rec.items) ? JSON.parse(JSON.stringify(rec.items)) : [];
+      tempPayments = rec && Array.isArray(rec.payments) ? JSON.parse(JSON.stringify(rec.payments)) : [];
+
+      document.getElementById("formHeaderTitle").textContent = `${mode.toUpperCase()} — ${MODULE_TITLES[currentModule]}`;
+      document.getElementById("formHeaderSub").textContent = rec?.Created_By ? `Owner: ${rec.Created_By}` : (activeUser ? `Logged by: ${activeUser.displayName}` : "");
+
+      const body = document.getElementById("formDynamicBody");
+      const clientOpts = [{ value: "", label: "-- Select Client --" }, ...(db.clients || []).map(c => ({ value: c.name, label: `${c.code} — ${c.name}` }))];
+      const supplierOpts = [{ value: "", label: "-- Select Supplier --" }, ...(db.suppliers || []).map(s => ({ value: s.name, label: `${s.code} — ${s.name}` }))];
+      const visibleEnqs = getVisibleCollection("enquiries");
+      const visibleSOs = getVisibleCollection("salesOrders");
+      const visiblePOs = getVisibleCollection("purchaseOrders");
+
+      // 1. ENQUIRIES FORM
+      if (currentModule === "enquiries") {
+        const r = rec || {
+          Enquiry_ID: genRunningID("ATEQ", today, db.enquiries, "Enquiry_ID"),
+          Enquiry_Date: today, Enquiry_Title: "", Client_Name: "", Client_Enquiry_Reference: "",
+          Project_Name: "", Requirement_Details: "", Contact_Name: "", Contact_Email: "", Contact_Phone: "",
+          Enquiry_Source: "Email", Quotation_Due_Date: "", Enquiry_Status: "New",
+          Final_Quoted_Amount: 0, Margin_Percent: 0, Last_Follow_Up_Date: "", Next_Follow_Up_Date: "", Next_Action: "", Remarks: ""
+        };
+        if (tempItems.length === 0) tempItems.push({ Client_Item_Reference: "", Item_Category: "Instrumentation", Item_Description: "", Detailed_Specification: "", Manufacturer_or_Brand: "", Model_or_Part_Number: "", UOM: "EA", Quantity: 1, Required_Delivery_Date: "", Remarks: "" });
+
+        body.innerHTML = `
+          <div class="bg-white rounded-xl border border-slate-200 p-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+            ${fInput("f_Enquiry_ID", "Enquiry_ID", r.Enquiry_ID, "text", true)}
+            ${fInput("f_Enquiry_Date", "Enquiry_Date *", r.Enquiry_Date, "date")}
+            <div class="md:col-span-2">${fInput("f_Enquiry_Title", "Enquiry_Title *", r.Enquiry_Title)}</div>
+            <div class="md:col-span-2">${fSelect("f_Client_Name", "Client_Name *", clientOpts, r.Client_Name, false, "onEnqClientChange()")}</div>
+            ${fInput("f_Client_Enquiry_Reference", "Client_Enquiry_Reference", r.Client_Enquiry_Reference)}
+            ${fInput("f_Project_Name", "Project_Name", r.Project_Name)}
+            ${fInput("f_Contact_Name", "Contact_Name", r.Contact_Name)}
+            ${fInput("f_Contact_Email", "Contact_Email", r.Contact_Email, "email")}
+            ${fInput("f_Contact_Phone", "Contact_Phone", r.Contact_Phone)}
+            ${fSelect("f_Enquiry_Source", "Enquiry_Source", ["Email", "SAP Ariba", "Client Portal", "Phone", "Salesperson"], r.Enquiry_Source)}
+            ${fInput("f_Quotation_Due_Date", "Quotation_Due_Date", r.Quotation_Due_Date, "date")}
+            ${fSelect("f_Enquiry_Status", "Enquiry_Status", ["New", "In Progress", "Quoted", "Under Negotiation", "Won", "Lost", "On Hold"], r.Enquiry_Status)}
+            ${fInput("f_Final_Quoted_Amount", "Final_Quoted_Amount (AED)", r.Final_Quoted_Amount, "number", false, 'step="0.01"')}
+            ${fInput("f_Margin_Percent", "Margin%", r.Margin_Percent, "number", false, 'step="0.01"')}
+            ${fInput("f_Last_Follow_Up_Date", "Last_Follow_Up_Date", r.Last_Follow_Up_Date, "date")}
+            ${fInput("f_Next_Follow_Up_Date", "Next_Follow_Up_Date", r.Next_Follow_Up_Date, "date")}
+            <div class="md:col-span-2">${fInput("f_Next_Action", "Next_Action", r.Next_Action)}</div>
+            <div class="md:col-span-2">${fInput("f_Requirement_Details", "Requirement_Details", r.Requirement_Details)}</div>
+            <div class="md:col-span-4">${fInput("f_Remarks", "Remarks", r.Remarks)}</div>
+          </div>
+          <div id="lineItemsWrap">${renderLineItemsTable()}</div>
+          <div id="attachmentsWrap">${renderAttachmentsSection()}</div>
+        `;
+      }
+
+      // 2. SUPPLIER QUOTATIONS FORM
+      else if (currentModule === "supplierQuotations") {
+        const defaultEnq = visibleEnqs[0]?.Enquiry_ID || "ATEQ260001";
+        const r = rec || {
+          Supplier_Quotation_ID: genSupplierQuotationID(defaultEnq), Revision_No: "0",
+          Client_Name: visibleEnqs[0]?.Client_Name || "", Enquiry_ID: defaultEnq, Supplier_Name: "",
+          Supplier_Quotation_Reference: "", Quotation_Date: today, Received_Date: today, Valid_Until: "",
+          Payment_Terms: "", Delivery_Terms: "", Delivery_Period: "", Currency: "AED",
+          Total_Quoted_Amount_Excl_VAT: 0, Total_Quoted_Amount_Excl_VAT_AED: 0,
+          Discount: 0, Discount_AED: 0, VAT_Applicable: true, VAT_Amount: 0, VAT_Amount_AED: 0,
+          Final_Quoted_Amount_Incl_VAT: 0, Final_Quoted_Amount_Incl_VAT_AED: 0,
+          Quotation_Status: "Submitted", Remarks: ""
+        };
+        if (tempItems.length === 0) tempItems.push({ Line_No: 1, Item_Category: "Instrumentation", Item_Description: "", Detailed_Specification: "", Manufacturer_Name: "", Brand: "", Model_or_Part_Number: "", UOM: "EA", Currency: r.Currency || "AED", Quantity: 1, Unit_Price: 0, Line_Total_Excl_VAT: 0, Line_Total_Excl_VAT_AED: 0, Delivery_Period_Details: "", Expected_Delivery_Date: "", Remarks: "" });
+
+        const enqOpts = visibleEnqs.map(e => ({ value: e.Enquiry_ID, label: `${e.Enquiry_ID} — ${e.Enquiry_Title}` }));
+        body.innerHTML = `
+          <div class="bg-white rounded-xl border border-slate-200 p-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+            ${fInput("f_Supplier_Quotation_ID", "Supplier_Quotation_ID", r.Supplier_Quotation_ID, "text", true)}
+            ${fInput("f_Revision_No", "Revision_No", r.Revision_No)}
+            ${fSelect("f_Client_Name", "Client_Name", clientOpts, r.Client_Name, false, "onSQClientChange()")}
+            ${fSelect("f_Enquiry_ID", "Enquiry_ID", enqOpts, r.Enquiry_ID, false, "onSQEnquiryChange()")}
+            ${fSelect("f_Supplier_Name", "Supplier_Name", supplierOpts, r.Supplier_Name, false, "onSQSupplierChange()")}
+            ${fInput("f_Supplier_Quotation_Reference", "Supplier_Quotation_Reference", r.Supplier_Quotation_Reference)}
+            ${fInput("f_Quotation_Date", "Quotation_Date", r.Quotation_Date, "date")}
+            ${fInput("f_Received_Date", "Received_Date", r.Received_Date, "date")}
+            ${fInput("f_Valid_Until", "Valid_Until", r.Valid_Until, "date")}
+            ${fInput("f_Payment_Terms", "Payment_Terms", r.Payment_Terms)}
+            ${fInput("f_Delivery_Terms", "Delivery_Terms", r.Delivery_Terms)}
+            ${fInput("f_Delivery_Period", "Delivery_Period", r.Delivery_Period)}
+            ${fSelect("f_Currency", "Currency", CURRENCIES, r.Currency, false, "recalcSQHeader()")}
+            ${fInput("f_Total_Quoted_Amount_Excl_VAT", "Total_Quoted_Amount_Excl_VAT", r.Total_Quoted_Amount_Excl_VAT, "number", false, 'step="0.01" oninput="markDirty(); recalcSQHeader();"')}
+            ${fInput("f_Total_Quoted_Amount_Excl_VAT_AED", "Total_Quoted_Amount_Excl_VAT (AED)", r.Total_Quoted_Amount_Excl_VAT_AED, "number", false, 'step="0.01"')}
+            ${fInput("f_Discount", "Discount", r.Discount, "number", false, 'step="0.01" oninput="markDirty(); recalcSQHeader();"')}
+            ${fInput("f_Discount_AED", "Discount (AED)", r.Discount_AED, "number", false, 'step="0.01"')}
+            <div class="flex flex-col justify-end">
+              <label class="inline-flex items-center gap-2 text-xs font-bold text-slate-800 mb-1">
+                <input type="checkbox" id="f_VAT_Applicable" ${r.VAT_Applicable !== false ? 'checked' : ''} ${formMode === 'view' ? 'disabled' : ''} onchange="markDirty(); recalcSQHeader();" class="rounded text-blue-600" />
+                VAT Applicable (5%)
+              </label>
+              <input type="number" step="0.01" id="f_VAT_Amount" value="${r.VAT_Amount ?? 0}" oninput="markDirty(); recalcSQHeader(true);" class="w-full text-xs border border-slate-300 rounded-lg px-3 py-2" />
+            </div>
+            ${fInput("f_VAT_Amount_AED", "VAT_Amount (AED)", r.VAT_Amount_AED, "number", false, 'step="0.01"')}
+            ${fInput("f_Final_Quoted_Amount_Incl_VAT", "Final_Quoted_Amount_Incl_VAT", r.Final_Quoted_Amount_Incl_VAT, "number", true)}
+            ${fInput("f_Final_Quoted_Amount_Incl_VAT_AED", "Final_Quoted_Amount_Incl_VAT (AED)", r.Final_Quoted_Amount_Incl_VAT_AED, "number", false, 'step="0.01"')}
+            ${fSelect("f_Quotation_Status", "Quotation_Status", QUOTATION_STATUSES, r.Quotation_Status)}
+            <div class="md:col-span-2">${fInput("f_Remarks", "Remarks", r.Remarks)}</div>
+          </div>
+          <div id="lineItemsWrap">${renderLineItemsTable()}</div>
+          <div id="attachmentsWrap">${renderAttachmentsSection()}</div>
+        `;
+      }
+
+      // 3. CLIENT QUOTATIONS FORM
+      else if (currentModule === "clientQuotations") {
+        const defaultEnq = visibleEnqs[0] || { Enquiry_ID: "ATEQ260001", Enquiry_Title: "", Client_Name: "" };
+        const clObj = (db.clients || []).find(c => c.name === defaultEnq.Client_Name);
+        const r = rec || {
+          Client_Quotation_ID: genClientQuotationID(defaultEnq.Enquiry_ID), Revision_No: "0",
+          Enquiry_ID: defaultEnq.Enquiry_ID, Enquiry_Title: defaultEnq.Enquiry_Title,
+          Client_Name: defaultEnq.Client_Name, Client_Code: clObj?.code || "ATCL000001",
+          Supplier_Quotation_ID: "", Quotation_Date: today, Submitted_Date: today, Currency: "AED", Valid_Until: "",
+          Payment_Terms: "", Delivery_Terms: "", Delivery_Period: "",
+          Quotation_Value_Excl_VAT: 0, Quotation_Value_Excl_VAT_AED: 0,
+          Discount: 0, Discount_AED: 0, VAT_Applicable: getClientVatSetting(defaultEnq.Client_Name),
+          VAT_Amount: 0, VAT_Amount_AED: 0, Final_Quotation_Value_Incl_VAT: 0, Final_Quotation_Value_Incl_VAT_AED: 0,
+          Margin_Percent: 0, Margin_Amount: 0, Margin_Amount_AED: 0,
+          Quotation_Status: "Draft", Quotation_Document_Link: "", Remarks: ""
+        };
+        if (tempItems.length === 0) tempItems.push({ Line_No: 1, Item_Category: "Instrumentation", Item_Description: "", Detailed_Specification: "", Manufacturer_or_Brand: "", Model_or_Part_Number: "", UOM: "EA", Quantity: 1, Unit_Price: 0, Line_Total_Excl_VAT: 0, Line_Total_Excl_VAT_AED: 0, Delivery_Period_Details: "", Remarks: "" });
+
+        const enqOpts = visibleEnqs.map(e => ({ value: e.Enquiry_ID, label: `${e.Enquiry_ID} — ${e.Enquiry_Title}` }));
+        const sqList = (db.supplierQuotations || []).filter(sq => sq.Enquiry_ID === r.Enquiry_ID).map(sq => sq.Supplier_Quotation_ID);
+
+        body.innerHTML = `
+          <div class="bg-white rounded-xl border border-slate-200 p-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+            ${fInput("f_Client_Quotation_ID", "Client_Quotation_ID", r.Client_Quotation_ID, "text", true)}
+            ${fInput("f_Revision_No", "Revision_No", r.Revision_No)}
+            ${fSelect("f_Enquiry_ID", "Enquiry_ID", enqOpts, r.Enquiry_ID, mode !== "create", "onCQEnquiryChange()")}
+            ${fInput("f_Enquiry_Title", "Enquiry_Title", r.Enquiry_Title, "text", true)}
+            ${fInput("f_Client_Name", "Client_Name", r.Client_Name, "text", true)}
+            ${fInput("f_Client_Code", "Client_Code", r.Client_Code, "text", true)}
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Supplier_Quotation_ID</label>
+              <input list="sqDatalist" id="f_Supplier_Quotation_ID" value="${r.Supplier_Quotation_ID || ''}" ${formMode === 'view' ? 'readonly' : ''} placeholder="Select or enter ID" class="w-full text-xs border border-slate-300 rounded-lg px-3 py-2" />
+              <datalist id="sqDatalist">${sqList.map(id => `<option value="${id}">`).join("")}</datalist>
+            </div>
+            ${fInput("f_Quotation_Date", "Quotation_Date", r.Quotation_Date, "date")}
+            ${fInput("f_Submitted_Date", "Submitted_Date", r.Submitted_Date, "date")}
+            ${fSelect("f_Currency", "Currency", CURRENCIES, r.Currency, false, "recalcCQHeader()")}
+            ${fInput("f_Valid_Until", "Valid_Until", r.Valid_Until, "date")}
+            ${fInput("f_Payment_Terms", "Payment_Terms", r.Payment_Terms)}
+            ${fInput("f_Delivery_Terms", "Delivery_Terms", r.Delivery_Terms)}
+            ${fInput("f_Delivery_Period", "Delivery_Period", r.Delivery_Period)}
+            ${fInput("f_Quotation_Value_Excl_VAT", "Quotation_Value_Excl_VAT", r.Quotation_Value_Excl_VAT, "number", false, 'step="0.01" oninput="markDirty(); recalcCQHeader();"')}
+            ${fInput("f_Quotation_Value_Excl_VAT_AED", "Quotation_Value_Excl_VAT (AED)", r.Quotation_Value_Excl_VAT_AED, "number", false, 'step="0.01"')}
+            ${fInput("f_Discount", "Discount", r.Discount, "number", false, 'step="0.01" oninput="markDirty(); recalcCQHeader();"')}
+            ${fInput("f_Discount_AED", "Discount (AED)", r.Discount_AED, "number", false, 'step="0.01"')}
+            <div class="flex flex-col justify-end">
+              <label class="inline-flex items-center gap-2 text-xs font-bold text-slate-800 mb-1">
+                <input type="checkbox" id="f_VAT_Applicable" ${r.VAT_Applicable !== false ? 'checked' : ''} ${formMode === 'view' ? 'disabled' : ''} onchange="markDirty(); recalcCQHeader();" class="rounded text-blue-600" />
+                VAT Applicable (5%)
+              </label>
+              <input type="number" step="0.01" id="f_VAT_Amount" value="${r.VAT_Amount ?? 0}" oninput="markDirty(); recalcCQHeader(true);" class="w-full text-xs border border-slate-300 rounded-lg px-3 py-2" />
+            </div>
+            ${fInput("f_VAT_Amount_AED", "VAT_Amount (AED)", r.VAT_Amount_AED, "number", false, 'step="0.01"')}
+            ${fInput("f_Final_Quotation_Value_Incl_VAT", "Final_Quotation_Value_Incl_VAT", r.Final_Quotation_Value_Incl_VAT, "number", true)}
+            ${fInput("f_Final_Quotation_Value_Incl_VAT_AED", "Final_Quotation_Value_Incl_VAT (AED)", r.Final_Quotation_Value_Incl_VAT_AED, "number", false, 'step="0.01"')}
+            ${fInput("f_Margin_Percent", "Margin(%)", r.Margin_Percent, "number", false, 'step="0.01"')}
+            ${fInput("f_Margin_Amount", "Margin_Amount", r.Margin_Amount, "number", false, 'step="0.01" oninput="markDirty(); recalcCQHeader();"')}
+            ${fInput("f_Margin_Amount_AED", "Margin_Amount (AED)", r.Margin_Amount_AED, "number", false, 'step="0.01"')}
+            ${fSelect("f_Quotation_Status", "Quotation_Status", QUOTATION_STATUSES, r.Quotation_Status)}
+            <div class="md:col-span-2">${fInput("f_Quotation_Document_Link", "Quotation_Document_Link", r.Quotation_Document_Link)}</div>
+            <div class="md:col-span-2">${fInput("f_Remarks", "Remarks", r.Remarks)}</div>
+          </div>
+          <div id="lineItemsWrap">${renderLineItemsTable()}</div>
+          <div id="attachmentsWrap">${renderAttachmentsSection()}</div>
+        `;
+      }
+
+      // 4. SALES ORDERS FORM
+      else if (currentModule === "salesOrders") {
+        const cqList = getVisibleCollection("clientQuotations");
+        const defCQ = cqList[0] || { Client_Quotation_ID: "ATCQ260001", Enquiry_ID: "ATEQ260001", Client_Name: "ADNOC Onshore", Client_Code: "ATCL000001", Currency: "AED" };
+        const r = rec || {
+          Sales_Order_ID: genRunningID("ATSO", today, db.salesOrders, "Sales_Order_ID"), Revision_No: "0",
+          Client_PO_Date: today, Client_PO_Reference: "", Client_PO_Title: "",
+          Client_Quotation_ID: defCQ.Client_Quotation_ID, Enquiry_ID: defCQ.Enquiry_ID,
+          Client_Name: defCQ.Client_Name, Client_Code: defCQ.Client_Code, Currency: defCQ.Currency || "AED",
+          PO_Value_Excl_VAT: 0, PO_Value_Excl_VAT_AED: 0, Discount: 0, Discount_AED: 0,
+          Net_Amount_Excl_VAT: 0, Net_Amount_Excl_VAT_AED: 0,
+          VAT_Applicable: getClientVatSetting(defCQ.Client_Name), VAT_Amount: 0, VAT_Amount_AED: 0,
+          Final_PO_Value_Incl_VAT: 0, Final_PO_Value_Incl_VAT_AED: 0,
+          Total_Invoiced: 0, Total_Invoiced_AED: 0, Total_Payment_Received: 0, Total_Payment_Received_AED: 0,
+          Outstanding_Payment: 0, Outstanding_Payment_AED: 0,
+          Payment_Terms: "", Expected_Payment_Details: "", Delivery_Terms: "", Required_Delivery_Date: "",
+          PO_Status: "Draft", Remarks: ""
+        };
+        if (tempItems.length === 0) tempItems.push({ Order_Line_No: 1, Client_PO_Line_Reference: "", Item_Category: "Instrumentation", Item_Description: "", Detailed_Specification: "", Manufacturer_or_Brand: "", Model_or_Part_Number: "", UOM: "EA", Quantity: 1, Unit_Price: 0, Line_Total_Excl_VAT: 0, Line_Total_Excl_VAT_AED: 0, Required_Delivery_Date: "", Remarks: "" });
+
+        const cqOpts = cqList.map(c => ({ value: c.Client_Quotation_ID, label: `${c.Client_Quotation_ID} — ${c.Client_Name}` }));
+        body.innerHTML = `
+          <div class="bg-white rounded-xl border border-slate-200 p-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+            ${fInput("f_Sales_Order_ID", "Sales_Order_ID", r.Sales_Order_ID, "text", true)}
+            ${fInput("f_Revision_No", "Revision_No", r.Revision_No, "number", false, 'step="1"')}
+            ${fInput("f_Client_PO_Date", "Client_PO_Date", r.Client_PO_Date, "date")}
+            ${fInput("f_Client_PO_Reference", "Client_PO_Reference", r.Client_PO_Reference)}
+            <div class="md:col-span-2">${fInput("f_Client_PO_Title", "Client_PO_Title", r.Client_PO_Title)}</div>
+            ${fSelect("f_Client_Quotation_ID", "Client_Quotation_ID", cqOpts, r.Client_Quotation_ID, false, "onSOCQChange()")}
+            ${fInput("f_Enquiry_ID", "Enquiry_ID", r.Enquiry_ID, "text", true)}
+            ${fInput("f_Client_Name", "Client_Name", r.Client_Name, "text", true)}
+            ${fInput("f_Client_Code", "Client_Code", r.Client_Code, "text", true)}
+            ${fSelect("f_Currency", "Currency", CURRENCIES, r.Currency, false, "recalcSOHeader()")}
+            ${fInput("f_PO_Value_Excl_VAT", "PO_Value_Excl_VAT", r.PO_Value_Excl_VAT, "number", false, 'step="0.01" oninput="markDirty(); recalcSOHeader();"')}
+            ${fInput("f_PO_Value_Excl_VAT_AED", "PO_Value_Excl_VAT (AED)", r.PO_Value_Excl_VAT_AED, "number", false, 'step="0.01"')}
+            ${fInput("f_Discount", "Discount", r.Discount, "number", false, 'step="0.01" oninput="markDirty(); recalcSOHeader();"')}
+            ${fInput("f_Discount_AED", "Discount (AED)", r.Discount_AED, "number", false, 'step="0.01"')}
+            ${fInput("f_Net_Amount_Excl_VAT", "Net_Amount_Excl_VAT", r.Net_Amount_Excl_VAT, "number", true)}
+            ${fInput("f_Net_Amount_Excl_VAT_AED", "Net_Amount_Excl_VAT (AED)", r.Net_Amount_Excl_VAT_AED, "number", false, 'step="0.01"')}
+            <div class="flex flex-col justify-end">
+              <label class="inline-flex items-center gap-2 text-xs font-bold text-slate-800 mb-1">
+                <input type="checkbox" id="f_VAT_Applicable" ${r.VAT_Applicable !== false ? 'checked' : ''} ${formMode === 'view' ? 'disabled' : ''} onchange="markDirty(); recalcSOHeader();" class="rounded text-blue-600" />
+                VAT Applicable (5%)
+              </label>
+              <input type="number" step="0.01" id="f_VAT_Amount" value="${r.VAT_Amount ?? 0}" oninput="markDirty(); recalcSOHeader(true);" class="w-full text-xs border border-slate-300 rounded-lg px-3 py-2" />
+            </div>
+            ${fInput("f_VAT_Amount_AED", "VAT_Amount (AED)", r.VAT_Amount_AED, "number", false, 'step="0.01"')}
+            ${fInput("f_Final_PO_Value_Incl_VAT", "Final_PO_Value_Incl_VAT", r.Final_PO_Value_Incl_VAT, "number", true)}
+            ${fInput("f_Final_PO_Value_Incl_VAT_AED", "Final_PO_Value_Incl_VAT (AED)", r.Final_PO_Value_Incl_VAT_AED, "number", false, 'step="0.01"')}
+            ${fInput("f_Total_Invoiced", "Total_Invoiced", r.Total_Invoiced, "number", true)}
+            ${fInput("f_Total_Invoiced_AED", "Total_Invoiced (AED)", r.Total_Invoiced_AED, "number", false, 'step="0.01"')}
+            ${fInput("f_Total_Payment_Received", "Total_Payment_Received", r.Total_Payment_Received, "number", true)}
+            ${fInput("f_Total_Payment_Received_AED", "Total_Payment_Received (AED)", r.Total_Payment_Received_AED, "number", false, 'step="0.01"')}
+            ${fInput("f_Outstanding_Payment", "Outstanding_Payment", r.Outstanding_Payment, "number", true)}
+            ${fInput("f_Outstanding_Payment_AED", "Outstanding_Payment (AED)", r.Outstanding_Payment_AED, "number", false, 'step="0.01"')}
+            ${fInput("f_Payment_Terms", "Payment_Terms", r.Payment_Terms)}
+            ${fInput("f_Expected_Payment_Details", "Expected_Payment_Details", r.Expected_Payment_Details)}
+            ${fInput("f_Delivery_Terms", "Delivery_Terms", r.Delivery_Terms)}
+            ${fInput("f_Required_Delivery_Date", "Required_Delivery_Date", r.Required_Delivery_Date, "date")}
+            ${fSelect("f_PO_Status", "PO_Status", PO_STATUSES, r.PO_Status)}
+            <div class="md:col-span-3">${fInput("f_Remarks", "Remarks", r.Remarks)}</div>
+          </div>
+          <div id="lineItemsWrap">${renderLineItemsTable()}</div>
+          <div id="attachmentsWrap">${renderAttachmentsSection()}</div>
+        `;
+      }
+
+      // 5. SALES INVOICES FORM
+      else if (currentModule === "salesInvoices") {
+        const defSO = visibleSOs[0] || { Sales_Order_ID: "ATSO260001", Currency: "AED", VAT_Applicable: true };
+        const r = rec || {
+          Invoice_ID: genRunningID("ATINV", today, db.salesInvoices, "Invoice_ID"),
+          Sales_Order_ID: defSO.Sales_Order_ID, Invoice_Date: today, Submitted_Date: today, Due_Date: "",
+          Currency: defSO.Currency || "AED", Invoice_Value_Excl_VAT: 0, Invoice_Value_Excl_VAT_AED: 0,
+          VAT_Applicable: defSO.VAT_Applicable !== false, VAT_Amount: 0, VAT_Amount_AED: 0,
+          Invoice_Value_Incl_VAT: 0, Invoice_Value_Incl_VAT_AED: 0,
+          Amount_Received: 0, Amount_Received_AED: 0, Outstanding_Amount: 0, Outstanding_Amount_AED: 0,
+          Invoice_Status: "Draft", Payment_Status: "Unpaid", Remarks: ""
+        };
+        const soOpts = visibleSOs.map(s => ({ value: s.Sales_Order_ID, label: `${s.Sales_Order_ID} - ${s.Client_PO_Title}` }));
+        body.innerHTML = `
+          <div class="bg-white rounded-xl border border-slate-200 p-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+            ${fInput("f_Invoice_ID", "Invoice_ID", r.Invoice_ID, "text", true)}
+            <div class="md:col-span-2">${fSelect("f_Sales_Order_ID", "Sales_Order_ID", soOpts, r.Sales_Order_ID, false, "onSISalesOrderChange()")}</div>
+            ${fSelect("f_Currency", "Currency", CURRENCIES, r.Currency, false, "recalcSIHeader()")}
+            ${fInput("f_Invoice_Date", "Invoice_Date", r.Invoice_Date, "date")}
+            ${fInput("f_Submitted_Date", "Submitted_Date", r.Submitted_Date, "date")}
+            ${fInput("f_Due_Date", "Due_Date", r.Due_Date, "date")}
+            ${fInput("f_Invoice_Value_Excl_VAT", "Invoice_Value_Excl_VAT", r.Invoice_Value_Excl_VAT, "number", false, 'step="0.01" oninput="markDirty(); recalcSIHeader();"')}
+            ${fInput("f_Invoice_Value_Excl_VAT_AED", "Invoice_Value_Excl_VAT (AED)", r.Invoice_Value_Excl_VAT_AED, "number", false, 'step="0.01"')}
+            <div class="flex flex-col justify-end">
+              <label class="inline-flex items-center gap-2 text-xs font-bold text-slate-800 mb-1">
+                <input type="checkbox" id="f_VAT_Applicable" ${r.VAT_Applicable !== false ? 'checked' : ''} ${formMode === 'view' ? 'disabled' : ''} onchange="markDirty(); recalcSIHeader();" class="rounded text-blue-600" />
+                VAT Applicable (5%)
+              </label>
+              <input type="number" step="0.01" id="f_VAT_Amount" value="${r.VAT_Amount ?? 0}" oninput="markDirty(); recalcSIHeader(true);" class="w-full text-xs border border-slate-300 rounded-lg px-3 py-2" />
+            </div>
+            ${fInput("f_VAT_Amount_AED", "VAT_Amount (AED)", r.VAT_Amount_AED, "number", false, 'step="0.01"')}
+            ${fInput("f_Invoice_Value_Incl_VAT", "Invoice_Value_Incl_VAT", r.Invoice_Value_Incl_VAT, "number", true)}
+            ${fInput("f_Invoice_Value_Incl_VAT_AED", "Invoice_Value_Incl_VAT (AED)", r.Invoice_Value_Incl_VAT_AED, "number", false, 'step="0.01"')}
+            ${fInput("f_Amount_Received", "Amount_Received", r.Amount_Received, "number", true)}
+            ${fInput("f_Amount_Received_AED", "Amount_Received (AED)", r.Amount_Received_AED, "number", false, 'step="0.01"')}
+            ${fInput("f_Outstanding_Amount", "Outstanding_Amount", r.Outstanding_Amount, "number", true)}
+            ${fInput("f_Outstanding_Amount_AED", "Outstanding_Amount (AED)", r.Outstanding_Amount_AED, "number", false, 'step="0.01"')}
+            ${fSelect("f_Invoice_Status", "Invoice_Status", INVOICE_STATUSES, r.Invoice_Status)}
+            ${fInput("f_Payment_Status", "Payment_Status (Auto)", r.Payment_Status, "text", true)}
+            <div class="md:col-span-2">${fInput("f_Remarks", "Remarks", r.Remarks)}</div>
+          </div>
+          <div id="paymentsWrap">${renderPaymentsLedger("Client Payments Received Against Invoice")}</div>
+          <div id="attachmentsWrap">${renderAttachmentsSection()}</div>
+        `;
+      }
+
+      // 6. PURCHASE ORDERS FORM
+      else if (currentModule === "purchaseOrders") {
+        const defSO = visibleSOs[0] || { Sales_Order_ID: "ATSO260001", Client_PO_Title: "", Client_Quotation_ID: "" };
+        const defSupp = db.suppliers[0] || { name: "Swagelok Middle East FZE", code: "ATSP000001", vatApplicable: "Yes" };
+        const r = rec || {
+          PO_ID: genRunningID("ATPO", today, db.purchaseOrders, "PO_ID"), Revision_No: "0",
+          PO_Title: "", PO_Type: "Material", PO_Category: "Purchase – Client Order",
+          Sales_Order_ID: defSO.Sales_Order_ID, Supplier_Name: defSupp.name, Supplier_Code: defSupp.code,
+          PO_Date: today, Supplier_Quotation_ID: "", Currency: "AED",
+          PO_Value_Excl_VAT: 0, PO_Value_Excl_VAT_AED: 0, Discount: 0, Discount_AED: 0,
+          Net_Amount_Excl_VAT: 0, Net_Amount_Excl_VAT_AED: 0,
+          VAT_Applicable: defSupp.vatApplicable !== "No", VAT_Amount: 0, VAT_Amount_AED: 0,
+          Final_PO_Value_Incl_VAT: 0, Final_PO_Value_Incl_VAT_AED: 0,
+          Total_Invoiced: 0, Total_Invoiced_AED: 0, Total_Paid: 0, Total_Paid_AED: 0,
+          Outstanding_Payable: 0, Outstanding_Payable_AED: 0,
+          Payment_Terms: "", Expected_Payment_Details: "", Delivery_Terms: "", Expected_Delivery_Date: "",
+          PO_Status: "Draft", Remarks: ""
+        };
+        if (tempItems.length === 0) tempItems.push({ PO_Line_No: 1, Sales_Order_ID: r.Sales_Order_ID || "", Item_Category: "Instrumentation", Item_Description: "", Detailed_Specification: "", Manufacturer_or_Brand: "", Model_or_Part_Number: "", UOM: "EA", Quantity: 1, Unit_Price: 0, Line_Total_Excl_VAT: 0, Line_Total_Excl_VAT_AED: 0, Expected_Delivery_Date: "", Remarks: "" });
+
+        const soOpts = [{ value: "", label: "-- Internal / No Sales Order --" }, ...visibleSOs.map(s => ({ value: s.Sales_Order_ID, label: `${s.Sales_Order_ID} – ${s.Client_PO_Title}` }))];
+        body.innerHTML = `
+          <div class="bg-white rounded-xl border border-slate-200 p-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+            ${fInput("f_PO_ID", "PO_ID", r.PO_ID, "text", true)}
+            ${fInput("f_Revision_No", "Revision_No", r.Revision_No, "number", false, 'step="1"')}
+            <div class="md:col-span-2">${fInput("f_PO_Title", "PO_Title *", r.PO_Title)}</div>
+            ${fSelect("f_PO_Type", "PO_Type", ["Material", "Service", "Material & Service"], r.PO_Type)}
+            ${fSelect("f_PO_Category", "PO_Category", ["Purchase – Client Order", "Freight – Client Order", "Purchase – Internal", "Freight – Internal"], r.PO_Category)}
+            <div class="md:col-span-2">${fSelect("f_Sales_Order_ID", "Sales_Order_ID (Mandatory for Client Order)", soOpts, r.Sales_Order_ID, false, "onPOSalesOrderChange()")}</div>
+            ${fSelect("f_Supplier_Name", "Supplier_Name *", supplierOpts, r.Supplier_Name, false, "onPOSupplierChange()")}
+            ${fInput("f_Supplier_Code", "Supplier_Code", r.Supplier_Code, "text", true)}
+            ${fInput("f_PO_Date", "PO_Date", r.PO_Date, "date")}
+            ${fInput("f_Supplier_Quotation_ID", "Supplier_Quotation_ID", r.Supplier_Quotation_ID, "text", true)}
+            ${fSelect("f_Currency", "Currency", CURRENCIES, r.Currency, false, "recalcPOHeader()")}
+            ${fInput("f_PO_Value_Excl_VAT", "PO_Value_Excl_VAT", r.PO_Value_Excl_VAT, "number", false, 'step="0.01" oninput="markDirty(); recalcPOHeader();"')}
+            ${fInput("f_PO_Value_Excl_VAT_AED", "PO_Value_Excl_VAT (AED)", r.PO_Value_Excl_VAT_AED, "number", false, 'step="0.01"')}
+            ${fInput("f_Discount", "Discount", r.Discount, "number", false, 'step="0.01" oninput="markDirty(); recalcPOHeader();"')}
+            ${fInput("f_Discount_AED", "Discount (AED)", r.Discount_AED, "number", false, 'step="0.01"')}
+            ${fInput("f_Net_Amount_Excl_VAT", "Net_Amount_Excl_VAT", r.Net_Amount_Excl_VAT, "number", true)}
+            ${fInput("f_Net_Amount_Excl_VAT_AED", "Net_Amount_Excl_VAT (AED)", r.Net_Amount_Excl_VAT_AED, "number", false, 'step="0.01"')}
+            <div class="flex flex-col justify-end">
+              <label class="inline-flex items-center gap-2 text-xs font-bold text-slate-800 mb-1">
+                <input type="checkbox" id="f_VAT_Applicable" ${r.VAT_Applicable !== false ? 'checked' : ''} ${formMode === 'view' ? 'disabled' : ''} onchange="markDirty(); recalcPOHeader();" class="rounded text-blue-600" />
+                VAT Applicable (5%)
+              </label>
+              <input type="number" step="0.01" id="f_VAT_Amount" value="${r.VAT_Amount ?? 0}" oninput="markDirty(); recalcPOHeader(true);" class="w-full text-xs border border-slate-300 rounded-lg px-3 py-2" />
+            </div>
+            ${fInput("f_VAT_Amount_AED", "VAT_Amount (AED)", r.VAT_Amount_AED, "number", false, 'step="0.01"')}
+            ${fInput("f_Final_PO_Value_Incl_VAT", "Final_PO_Value_Incl_VAT", r.Final_PO_Value_Incl_VAT, "number", true)}
+            ${fInput("f_Final_PO_Value_Incl_VAT_AED", "Final_PO_Value_Incl_VAT (AED)", r.Final_PO_Value_Incl_VAT_AED, "number", false, 'step="0.01"')}
+            ${fInput("f_Total_Invoiced", "Total_Invoiced", r.Total_Invoiced, "number", true)}
+            ${fInput("f_Total_Invoiced_AED", "Total_Invoiced (AED)", r.Total_Invoiced_AED, "number", false, 'step="0.01"')}
+            ${fInput("f_Total_Paid", "Total_Paid", r.Total_Paid, "number", true)}
+            ${fInput("f_Total_Paid_AED", "Total_Paid (AED)", r.Total_Paid_AED, "number", false, 'step="0.01"')}
+            ${fInput("f_Outstanding_Payable", "Outstanding_Payable", r.Outstanding_Payable, "number", true)}
+            ${fInput("f_Outstanding_Payable_AED", "Outstanding_Payable (AED)", r.Outstanding_Payable_AED, "number", false, 'step="0.01"')}
+            ${fInput("f_Payment_Terms", "Payment_Terms", r.Payment_Terms)}
+            ${fInput("f_Expected_Payment_Details", "Expected_Payment_Details", r.Expected_Payment_Details)}
+            ${fInput("f_Delivery_Terms", "Delivery_Terms", r.Delivery_Terms)}
+            ${fInput("f_Expected_Delivery_Date", "Expected_Delivery_Date", r.Expected_Delivery_Date, "date")}
+            ${fSelect("f_PO_Status", "PO_Status", PO_STATUSES, r.PO_Status)}
+            <div class="md:col-span-3">${fInput("f_Remarks", "Remarks", r.Remarks)}</div>
+          </div>
+          <div id="lineItemsWrap">${renderLineItemsTable()}</div>
+          <div id="attachmentsWrap">${renderAttachmentsSection()}</div>
+        `;
+      }
+
+      // 7. PURCHASE INVOICES FORM
+      else if (currentModule === "purchaseInvoices") {
+        const defPO = visiblePOs[0] || { PO_ID: "ATPO260001", Sales_Order_ID: "ATSO260001", Currency: "AED", VAT_Applicable: true };
+        const r = rec || {
+          Supplier_Invoice_ID: genRunningID("SPINV", today, db.purchaseInvoices, "Supplier_Invoice_ID"),
+          PO_ID: defPO.PO_ID, Sales_Order_ID: formatPOSalesOrderDisplay(defPO.Sales_Order_ID),
+          Invoice_Date: today, Received_Date: today, Due_Date: "",
+          Currency: defPO.Currency || "AED", Invoice_Value_Excl_VAT: 0, Invoice_Value_Excl_VAT_AED: 0,
+          VAT_Applicable: defPO.VAT_Applicable !== false, VAT_Amount: 0, VAT_Amount_AED: 0,
+          Invoice_Value_Incl_VAT: 0, Invoice_Value_Incl_VAT_AED: 0,
+          Amount_Paid: 0, Amount_Paid_AED: 0, Outstanding_Payable: 0, Outstanding_Payable_AED: 0,
+          Invoice_Status: "Draft", Payment_Status: "Unpaid", Remarks: ""
+        };
+        const poOpts = visiblePOs.map(p => ({ value: p.PO_ID, label: `${p.PO_ID} – ${p.PO_Title} – ${p.Supplier_Name}` }));
+        body.innerHTML = `
+          <div class="bg-white rounded-xl border border-slate-200 p-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+            ${fInput("f_Supplier_Invoice_ID", "Supplier_Invoice_ID", r.Supplier_Invoice_ID, "text", true)}
+            <div class="md:col-span-2">${fSelect("f_PO_ID", "PO_ID", poOpts, r.PO_ID, false, "onPIPOChange()")}</div>
+            ${fSelect("f_Currency", "Currency", CURRENCIES, r.Currency, false, "recalcPIHeader()")}
+            <div class="md:col-span-2">${fInput("f_Sales_Order_ID", "Sales_Order_ID", r.Sales_Order_ID, "text", true)}</div>
+            ${fInput("f_Invoice_Date", "Invoice_Date", r.Invoice_Date, "date")}
+            ${fInput("f_Received_Date", "Received_Date", r.Received_Date, "date")}
+            ${fInput("f_Due_Date", "Due_Date", r.Due_Date, "date")}
+            ${fInput("f_Invoice_Value_Excl_VAT", "Invoice_Value_Excl_VAT", r.Invoice_Value_Excl_VAT, "number", false, 'step="0.01" oninput="markDirty(); recalcPIHeader();"')}
+            ${fInput("f_Invoice_Value_Excl_VAT_AED", "Invoice_Value_Excl_VAT (AED)", r.Invoice_Value_Excl_VAT_AED, "number", false, 'step="0.01"')}
+            <div class="flex flex-col justify-end">
+              <label class="inline-flex items-center gap-2 text-xs font-bold text-slate-800 mb-1">
+                <input type="checkbox" id="f_VAT_Applicable" ${r.VAT_Applicable !== false ? 'checked' : ''} ${formMode === 'view' ? 'disabled' : ''} onchange="markDirty(); recalcPIHeader();" class="rounded text-blue-600" />
+                VAT Applicable (5%)
+              </label>
+              <input type="number" step="0.01" id="f_VAT_Amount" value="${r.VAT_Amount ?? 0}" oninput="markDirty(); recalcPIHeader(true);" class="w-full text-xs border border-slate-300 rounded-lg px-3 py-2" />
+            </div>
+            ${fInput("f_VAT_Amount_AED", "VAT_Amount (AED)", r.VAT_Amount_AED, "number", false, 'step="0.01"')}
+            ${fInput("f_Invoice_Value_Incl_VAT", "Invoice_Value_Incl_VAT", r.Invoice_Value_Incl_VAT, "number", true)}
+            ${fInput("f_Invoice_Value_Incl_VAT_AED", "Invoice_Value_Incl_VAT (AED)", r.Invoice_Value_Incl_VAT_AED, "number", false, 'step="0.01"')}
+            ${fInput("f_Amount_Paid", "Amount_Paid", r.Amount_Paid, "number", true)}
+            ${fInput("f_Amount_Paid_AED", "Amount_Paid (AED)", r.Amount_Paid_AED, "number", false, 'step="0.01"')}
+            ${fInput("f_Outstanding_Payable", "Outstanding_Payable", r.Outstanding_Payable, "number", true)}
+            ${fInput("f_Outstanding_Payable_AED", "Outstanding_Payable (AED)", r.Outstanding_Payable_AED, "number", false, 'step="0.01"')}
+            ${fSelect("f_Invoice_Status", "Invoice_Status", INVOICE_STATUSES, r.Invoice_Status)}
+            ${fInput("f_Payment_Status", "Payment_Status (Auto)", r.Payment_Status, "text", true)}
+            <div class="md:col-span-2">${fInput("f_Remarks", "Remarks", r.Remarks)}</div>
+          </div>
+          <div id="paymentsWrap">${renderPaymentsLedger("Payments Made to Supplier Against Invoice")}</div>
+          <div id="attachmentsWrap">${renderAttachmentsSection()}</div>
+        `;
+      }
+
+      // 8. CLIENT MASTER FORM
+      else if (currentModule === "clients") {
+        const r = rec || {
+          code: genMasterCode("ATCL", db.clients), name: "", type: "End User",
+          country: "United Arab Emirates", city: "Abu Dhabi", contact: "", designation: "",
+          email: "", phone: "", channel: "Email", vatApplicable: "Yes", status: "Active"
+        };
+        body.innerHTML = `
+          <div class="bg-white rounded-xl border border-slate-200 p-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+            ${fInput("f_code", "Client_Code", r.code, "text", true)}
+            <div class="md:col-span-2">${fInput("f_name", "Client_Name *", r.name)}</div>
+            ${fSelect("f_type", "Client Type", ["End User", "EPC Contractor", "Other Contractor", "Trading/Distribution Company", "Other"], r.type)}
+            ${fInput("f_country", "Country", r.country)}
+            ${fInput("f_city", "City/Emirate", r.city)}
+            ${fInput("f_contact", "Contact_Name", r.contact)}
+            ${fInput("f_designation", "Contact Designation", r.designation)}
+            ${fInput("f_email", "Contact_Email", r.email, "email")}
+            ${fInput("f_phone", "Contact_Phone", r.phone)}
+            ${fSelect("f_channel", "Enquiry Channel", ["Email", "SAP Ariba", "Phone", "Salesperson"], r.channel)}
+            ${fSelect("f_vatApplicable", "VAT Applicable", ["Yes", "No"], r.vatApplicable || "Yes")}
+            ${fSelect("f_status", "Status", ["Active", "Inactive"], r.status)}
+          </div>
+          <div id="attachmentsWrap">${renderAttachmentsSection()}</div>
+        `;
+      }
+
+      // 9. SUPPLIER MASTER FORM
+      else if (currentModule === "suppliers") {
+        const r = rec || {
+          code: genMasterCode("ATSP", db.suppliers), name: "", country: "United Arab Emirates",
+          city: "Dubai", contact: "", phone: "", category: "Instrumentation", vatApplicable: "Yes", status: "Active"
+        };
+        body.innerHTML = `
+          <div class="bg-white rounded-xl border border-slate-200 p-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+            ${fInput("f_code", "Supplier_Code", r.code, "text", true)}
+            <div class="md:col-span-2">${fInput("f_name", "Supplier_Name *", r.name)}</div>
+            ${fSelect("f_category", "Category", ITEM_CATEGORIES, r.category)}
+            ${fInput("f_country", "Country", r.country)}
+            ${fInput("f_city", "City", r.city)}
+            ${fInput("f_contact", "Contact Email / Person", r.contact)}
+            ${fInput("f_phone", "Phone", r.phone)}
+            ${fSelect("f_vatApplicable", "VAT Applicable", ["Yes", "No"], r.vatApplicable || "Yes")}
+            ${fSelect("f_status", "Status", ["Active", "Inactive"], r.status)}
+          </div>
+          <div id="attachmentsWrap">${renderAttachmentsSection()}</div>
+        `;
+      }
+    }
+    // ==================== DYNAMIC LINE ITEMS & PAYMENTS RENDERERS ====================
+    function renderLineItemsTable() {
+      const isRO = formMode === "view";
+      const roAttr = isRO ? "readonly disabled" : "";
+
+      if (currentModule === "enquiries") {
+        return `
+          <div class="bg-white rounded-xl border border-slate-200 p-5 space-y-3">
+            <div class="flex items-center justify-between">
+              <h4 class="text-xs font-bold uppercase tracking-wider text-slate-800">Enquiry Line Items</h4>
+              ${!isRO ? `<button type="button" onclick="addLineItem()" class="text-xs font-semibold px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white">+ Add New Item</button>` : ''}
+            </div>
+            <div class="overflow-x-auto border border-slate-200 rounded-lg">
+              <table class="w-full text-left border-collapse min-w-[1200px] text-xs">
+                <thead class="bg-slate-800 text-white text-[11px] uppercase">
+                  <tr><th class="p-2">#</th><th class="p-2">Client_Item_Reference</th><th class="p-2">Item_Category</th><th class="p-2">Item_Description</th><th class="p-2">Detailed_Specification</th><th class="p-2">Manufacturer_or_Brand</th><th class="p-2">Model_or_Part_Number</th><th class="p-2">UOM</th><th class="p-2 text-right">Quantity</th><th class="p-2">Required_Delivery_Date</th><th class="p-2">Remarks</th><th class="p-2 text-center">Action</th></tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+                  ${tempItems.map((it, idx) => `
+                    <tr>
+                      <td class="p-2 mono font-bold">${idx + 1}</td>
+                      <td class="p-1.5"><input type="text" ${roAttr} value="${it.Client_Item_Reference || ''}" oninput="tempItems[${idx}].Client_Item_Reference=this.value; markDirty();" class="w-full border rounded px-2 py-1" /></td>
+                      <td class="p-1.5"><select ${roAttr} onchange="tempItems[${idx}].Item_Category=this.value; markDirty();" class="w-full border rounded px-2 py-1">${ITEM_CATEGORIES.map(c => `<option value="${c}" ${it.Item_Category === c ? 'selected' : ''}>${c}</option>`).join("")}</select></td>
+                      <td class="p-1.5"><input type="text" ${roAttr} value="${it.Item_Description || ''}" oninput="tempItems[${idx}].Item_Description=this.value; markDirty();" class="w-full border rounded px-2 py-1" /></td>
+                      <td class="p-1.5"><input type="text" ${roAttr} value="${it.Detailed_Specification || ''}" oninput="tempItems[${idx}].Detailed_Specification=this.value; markDirty();" class="w-full border rounded px-2 py-1" /></td>
+                      <td class="p-1.5"><input type="text" ${roAttr} value="${it.Manufacturer_or_Brand || ''}" oninput="tempItems[${idx}].Manufacturer_or_Brand=this.value; markDirty();" class="w-full border rounded px-2 py-1" /></td>
+                      <td class="p-1.5"><input type="text" ${roAttr} value="${it.Model_or_Part_Number || ''}" oninput="tempItems[${idx}].Model_or_Part_Number=this.value; markDirty();" class="w-full border rounded px-2 py-1 mono" /></td>
+                      <td class="p-1.5"><select ${roAttr} onchange="tempItems[${idx}].UOM=this.value; markDirty();" class="w-full border rounded px-2 py-1 mono">${UOM_LIST.map(u => `<option value="${u}" ${it.UOM === u ? 'selected' : ''}>${u}</option>`).join("")}</select></td>
+                      <td class="p-1.5"><input type="number" step="0.01" ${roAttr} value="${it.Quantity ?? 1}" oninput="tempItems[${idx}].Quantity=parseFloat(this.value)||0; markDirty();" class="w-24 border rounded px-2 py-1 text-right mono" /></td>
+                      <td class="p-1.5"><input type="date" ${roAttr} value="${it.Required_Delivery_Date || ''}" onchange="tempItems[${idx}].Required_Delivery_Date=this.value; markDirty();" class="w-full border rounded px-2 py-1 mono" /></td>
+                      <td class="p-1.5"><input type="text" ${roAttr} value="${it.Remarks || ''}" oninput="tempItems[${idx}].Remarks=this.value; markDirty();" class="w-full border rounded px-2 py-1" /></td>
+                      <td class="p-1.5 text-center">${!isRO ? `<button type="button" onclick="confirmDeleteLineItem(${idx})" class="px-2 py-1 rounded bg-rose-50 text-rose-600 font-bold border border-rose-200">Delete</button>` : '-'}</td>
+                    </tr>
+                  `).join("")}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      }
+
+      // Commercial Items (Supplier Quotation, Client Quotation, Sales Order, Purchase Order)
+      const isSQ = currentModule === "supplierQuotations";
+      const isCQ = currentModule === "clientQuotations";
+      const isSO = currentModule === "salesOrders";
+      const isPO = currentModule === "purchaseOrders";
+      const visibleSOs = getVisibleCollection("salesOrders");
+
+      return `
+        <div class="bg-white rounded-xl border border-slate-200 p-5 space-y-3">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-800">Line Items</h4>
+            ${!isRO ? `<button type="button" onclick="addLineItem()" class="text-xs font-semibold px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white">+ Add New Item</button>` : ''}
+          </div>
+          <div class="overflow-x-auto border border-slate-200 rounded-lg">
+            <table class="w-full text-left border-collapse min-w-[1400px] text-xs">
+              <thead class="bg-slate-800 text-white text-[11px] uppercase">
+                <tr>
+                  <th class="p-2">Line_No</th>
+                  ${isSO ? `<th class="p-2">Client_PO_Line_Reference</th>` : ''}
+                  ${isPO ? `<th class="p-2">Sales_Order_ID</th>` : ''}
+                  <th class="p-2">Item_Category</th>
+                  <th class="p-2">Item_Description</th>
+                  <th class="p-2">Detailed_Specification</th>
+                  ${isSQ ? `<th class="p-2">Manufacturer_Name</th><th class="p-2">Brand</th>` : `<th class="p-2">Manufacturer_or_Brand</th>`}
+                  <th class="p-2">Model_or_Part_Number</th>
+                  <th class="p-2">UOM</th>
+                  ${isSQ ? `<th class="p-2">Currency</th>` : ''}
+                  <th class="p-2 text-right">Quantity</th>
+                  <th class="p-2 text-right">Unit_Price</th>
+                  <th class="p-2 text-right">Line_Total_Excl_VAT</th>
+                  <th class="p-2 text-right">Line_Total_Excl_VAT (AED)</th>
+                  ${(isSQ || isCQ) ? `<th class="p-2">Delivery_Period_Details</th>` : ''}
+                  ${(isSQ || isPO) ? `<th class="p-2">Expected_Delivery_Date</th>` : ''}
+                  ${isSO ? `<th class="p-2">Required_Delivery_Date</th>` : ''}
+                  <th class="p-2">Remarks</th>
+                  <th class="p-2 text-center">Action</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-200">
+                ${tempItems.map((it, idx) => `
+                  <tr>
+                    <td class="p-2 mono font-bold">${idx + 1}</td>
+                    ${isSO ? `<td class="p-1.5"><input type="text" ${roAttr} value="${it.Client_PO_Line_Reference || ''}" oninput="tempItems[${idx}].Client_PO_Line_Reference=this.value; markDirty();" class="w-28 border rounded px-2 py-1" /></td>` : ''}
+                    ${isPO ? `<td class="p-1.5"><select ${roAttr} onchange="tempItems[${idx}].Sales_Order_ID=this.value; markDirty();" class="w-44 border rounded px-2 py-1"><option value="">-- Internal --</option>${visibleSOs.map(s => `<option value="${s.Sales_Order_ID}" ${it.Sales_Order_ID === s.Sales_Order_ID ? 'selected' : ''}>${s.Sales_Order_ID} – ${s.Client_PO_Title}</option>`).join("")}</select></td>` : ''}
+                    <td class="p-1.5"><select ${roAttr} onchange="tempItems[${idx}].Item_Category=this.value; markDirty();" class="w-36 border rounded px-2 py-1">${ITEM_CATEGORIES.map(c => `<option value="${c}" ${it.Item_Category === c ? 'selected' : ''}>${c}</option>`).join("")}</select></td>
+                    <td class="p-1.5"><input type="text" ${roAttr} value="${it.Item_Description || ''}" oninput="tempItems[${idx}].Item_Description=this.value; markDirty();" class="w-40 border rounded px-2 py-1" /></td>
+                    <td class="p-1.5"><input type="text" ${roAttr} value="${it.Detailed_Specification || ''}" oninput="tempItems[${idx}].Detailed_Specification=this.value; markDirty();" class="w-44 border rounded px-2 py-1" /></td>
+                    ${isSQ ? `
+                      <td class="p-1.5"><input type="text" ${roAttr} value="${it.Manufacturer_Name || ''}" oninput="tempItems[${idx}].Manufacturer_Name=this.value; markDirty();" class="w-28 border rounded px-2 py-1" /></td>
+                      <td class="p-1.5"><input type="text" ${roAttr} value="${it.Brand || ''}" oninput="tempItems[${idx}].Brand=this.value; markDirty();" class="w-28 border rounded px-2 py-1" /></td>
+                    ` : `
+                      <td class="p-1.5"><input type="text" ${roAttr} value="${it.Manufacturer_or_Brand || ''}" oninput="tempItems[${idx}].Manufacturer_or_Brand=this.value; markDirty();" class="w-32 border rounded px-2 py-1" /></td>
+                    `}
+                    <td class="p-1.5"><input type="text" ${roAttr} value="${it.Model_or_Part_Number || ''}" oninput="tempItems[${idx}].Model_or_Part_Number=this.value; markDirty();" class="w-28 border rounded px-2 py-1 mono" /></td>
+                    <td class="p-1.5"><select ${roAttr} onchange="tempItems[${idx}].UOM=this.value; markDirty();" class="w-20 border rounded px-2 py-1 mono">${UOM_LIST.map(u => `<option value="${u}" ${it.UOM === u ? 'selected' : ''}>${u}</option>`).join("")}</select></td>
+                    ${isSQ ? `<td class="p-1.5"><select ${roAttr} onchange="tempItems[${idx}].Currency=this.value; recalcItemRow(${idx});" class="w-20 border rounded px-2 py-1 mono">${CURRENCIES.map(c => `<option value="${c}" ${it.Currency === c ? 'selected' : ''}>${c}</option>`).join("")}</select></td>` : ''}
+                    <td class="p-1.5"><input type="number" step="0.01" ${roAttr} value="${it.Quantity ?? 1}" oninput="tempItems[${idx}].Quantity=parseFloat(this.value)||0; recalcItemRow(${idx});" class="w-24 border rounded px-2 py-1 text-right mono" /></td>
+                    <td class="p-1.5"><input type="number" step="0.01" ${roAttr} value="${it.Unit_Price ?? 0}" oninput="tempItems[${idx}].Unit_Price=parseFloat(this.value)||0; recalcItemRow(${idx});" class="w-28 border rounded px-2 py-1 text-right mono" /></td>
+                    <td class="p-1.5"><input type="number" step="0.01" id="it_tot_${idx}" readonly value="${it.Line_Total_Excl_VAT ?? 0}" class="w-28 bg-slate-100 border rounded px-2 py-1 text-right mono" /></td>
+                    <td class="p-1.5"><input type="number" step="0.01" id="it_aed_${idx}" ${roAttr} value="${it.Line_Total_Excl_VAT_AED ?? 0}" oninput="tempItems[${idx}].Line_Total_Excl_VAT_AED=parseFloat(this.value)||0; markDirty();" class="w-28 border rounded px-2 py-1 text-right mono" /></td>
+                    ${(isSQ || isCQ) ? `<td class="p-1.5"><input type="text" ${roAttr} value="${it.Delivery_Period_Details || ''}" oninput="tempItems[${idx}].Delivery_Period_Details=this.value; markDirty();" class="w-28 border rounded px-2 py-1" /></td>` : ''}
+                    ${(isSQ || isPO) ? `<td class="p-1.5"><input type="date" ${roAttr} value="${it.Expected_Delivery_Date || ''}" onchange="tempItems[${idx}].Expected_Delivery_Date=this.value; markDirty();" class="w-32 border rounded px-2 py-1 mono" /></td>` : ''}
+                    ${isSO ? `<td class="p-1.5"><input type="date" ${roAttr} value="${it.Required_Delivery_Date || ''}" onchange="tempItems[${idx}].Required_Delivery_Date=this.value; markDirty();" class="w-32 border rounded px-2 py-1 mono" /></td>` : ''}
+                    <td class="p-1.5"><input type="text" ${roAttr} value="${it.Remarks || ''}" oninput="tempItems[${idx}].Remarks=this.value; markDirty();" class="w-32 border rounded px-2 py-1" /></td>
+                    <td class="p-1.5 text-center">${!isRO ? `<button type="button" onclick="confirmDeleteLineItem(${idx})" class="px-2 py-1 rounded bg-rose-50 text-rose-600 font-bold border border-rose-200">Delete</button>` : '-'}</td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    function recalcItemRow(idx) {
+      markDirty();
+      const it = tempItems[idx];
+      const hdrCurr = document.getElementById("f_Currency")?.value || "AED";
+      const curr = it.Currency || hdrCurr;
+      const tot = (parseFloat(it.Quantity) || 0) * (parseFloat(it.Unit_Price) || 0);
+      const aed = tot * getRate(curr);
+      it.Line_Total_Excl_VAT = Number(tot.toFixed(2));
+      it.Line_Total_Excl_VAT_AED = Number(aed.toFixed(2));
+      const elTot = document.getElementById(`it_tot_${idx}`);
+      const elAed = document.getElementById(`it_aed_${idx}`);
+      if (elTot) elTot.value = it.Line_Total_Excl_VAT;
+      if (elAed) elAed.value = it.Line_Total_Excl_VAT_AED;
+    }
+
+    function addLineItem() {
+      markDirty();
+      const n = tempItems.length + 1;
+      tempItems.push({
+        Line_No: n, Order_Line_No: n, PO_Line_No: n,
+        Item_Category: "Instrumentation", UOM: "EA", Currency: document.getElementById("f_Currency")?.value || "AED",
+        Quantity: 1, Unit_Price: 0, Line_Total_Excl_VAT: 0, Line_Total_Excl_VAT_AED: 0
+      });
+      document.getElementById("lineItemsWrap").innerHTML = renderLineItemsTable();
+    }
+
+    function confirmDeleteLineItem(idx) {
+      if (tempItems.length <= 1) {
+        showToast("At least one item is required.");
+        return;
+      }
+      openConfirmModal(
+        "Delete Line Item?",
+        `Are you sure you want to delete Line Item #${idx + 1}?`,
+        "Yes, Delete",
+        true,
+        () => {
+          tempItems.splice(idx, 1);
+          markDirty();
+          document.getElementById("lineItemsWrap").innerHTML = renderLineItemsTable();
+        }
+      );
+    }
+
+    // ==================== MULTI-PAYMENT LEDGER FOR INVOICES ====================
+    function renderPaymentsLedger(titleText) {
+      const isRO = formMode === "view";
+      const roAttr = isRO ? "readonly disabled" : "";
+      return `
+        <div class="bg-white rounded-xl border border-slate-200 p-5 space-y-3">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-800">${titleText}</h4>
+            ${!isRO ? `<button type="button" onclick="addPaymentTranche()" class="text-xs font-semibold px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white">+ Add Payment</button>` : ''}
+          </div>
+          <div class="overflow-x-auto border border-slate-200 rounded-lg">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead class="bg-slate-800 text-white text-[11px] uppercase">
+                <tr><th class="p-2.5">#</th><th class="p-2.5">Payment Date (dd/mmm/yyyy)</th><th class="p-2.5 text-right">Amount</th><th class="p-2.5">Reference / Bank Note</th><th class="p-2.5 text-center">Action</th></tr>
+              </thead>
+              <tbody class="divide-y divide-slate-200">
+                ${tempPayments.length === 0 ? `<tr><td colspan="5" class="p-4 text-center text-slate-400">No payments added yet. Status is Unpaid.</td></tr>` : tempPayments.map((p, idx) => `
+                  <tr>
+                    <td class="p-2.5 mono font-bold">${idx + 1}</td>
+                    <td class="p-2">
+                      <input type="date" ${roAttr} value="${p.date || ''}" onchange="tempPayments[${idx}].date=this.value; markDirty(); document.getElementById('pdp_${idx}').textContent=formatDateDDMMMYYYY(this.value);" class="border rounded px-2 py-1 mono" />
+                      <span id="pdp_${idx}" class="ml-2 mono text-[11px] text-blue-700 font-semibold">${p.date ? formatDateDDMMMYYYY(p.date) : ''}</span>
+                    </td>
+                    <td class="p-2 text-right">
+                      <input type="number" step="0.01" ${roAttr} value="${p.amount ?? 0}" oninput="tempPayments[${idx}].amount=parseFloat(this.value)||0; onPaymentsChanged();" class="w-36 border rounded px-2 py-1 text-right mono font-semibold" />
+                    </td>
+                    <td class="p-2">
+                      <input type="text" ${roAttr} value="${p.reference || ''}" oninput="tempPayments[${idx}].reference=this.value; markDirty();" placeholder="Cheque / Wire Ref" class="w-full border rounded px-2 py-1" />
+                    </td>
+                    <td class="p-2 text-center">
+                      ${!isRO ? `<button type="button" onclick="removePaymentTranche(${idx})" class="px-2 py-1 rounded bg-rose-50 text-rose-600 font-bold border border-rose-200">Delete</button>` : '-'}
+                    </td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    function addPaymentTranche() {
+      markDirty();
+      const today = new Date().toISOString().split("T")[0];
+      tempPayments.push({ date: today, amount: 0, reference: "" });
+      document.getElementById("paymentsWrap").innerHTML = renderPaymentsLedger(currentModule === "salesInvoices" ? "Client Payments Received Against Invoice" : "Payments Made to Supplier Against Invoice");
+      onPaymentsChanged();
+    }
+
+    function removePaymentTranche(idx) {
+      openConfirmModal("Delete Payment Entry?", "Remove this payment tranche from the invoice?", "Delete Payment", true, () => {
+        tempPayments.splice(idx, 1);
+        markDirty();
+        document.getElementById("paymentsWrap").innerHTML = renderPaymentsLedger(currentModule === "salesInvoices" ? "Client Payments Received Against Invoice" : "Payments Made to Supplier Against Invoice");
+        onPaymentsChanged();
+      });
+    }
+
+    function onPaymentsChanged() {
+      markDirty();
+      if (currentModule === "salesInvoices") recalcSIHeader();
+      if (currentModule === "purchaseInvoices") recalcPIHeader();
+    }
+    // ==================== FORM FIELD EVENTS & AUTO-CALCULATIONS ====================
+    function onEnqClientChange() {
+      const cname = document.getElementById("f_Client_Name")?.value;
+      const cl = (db.clients || []).find(c => c.name === cname);
+      if (cl) {
+        document.getElementById("f_Contact_Name").value = cl.contact || "";
+        document.getElementById("f_Contact_Email").value = cl.email || "";
+        document.getElementById("f_Contact_Phone").value = cl.phone || "";
+      }
+    }
+
+    function onSQClientChange() {
+      const cname = document.getElementById("f_Client_Name")?.value;
+      const enqs = getVisibleCollection("enquiries").filter(e => !cname || e.Client_Name === cname);
+      const sel = document.getElementById("f_Enquiry_ID");
+      if (sel) {
+        sel.innerHTML = enqs.map(e => `<option value="${e.Enquiry_ID}">${e.Enquiry_ID} — ${e.Enquiry_Title}</option>`).join("");
+        onSQEnquiryChange();
+      }
+      const vatChk = document.getElementById("f_VAT_Applicable");
+      if (vatChk) vatChk.checked = getClientVatSetting(cname);
+      recalcSQHeader();
+    }
+
+    function onSQEnquiryChange() {
+      const eid = document.getElementById("f_Enquiry_ID")?.value;
+      if (formMode === "create" && eid) {
+        document.getElementById("f_Supplier_Quotation_ID").value = genSupplierQuotationID(eid);
+      }
+    }
+
+    function onSQSupplierChange() {
+      const sname = document.getElementById("f_Supplier_Name")?.value;
+      const vatChk = document.getElementById("f_VAT_Applicable");
+      if (vatChk) vatChk.checked = getSupplierVatSetting(sname);
+      recalcSQHeader();
+    }
+
+    function recalcSQHeader(manualVat = false) {
+      const curr = document.getElementById("f_Currency")?.value || "AED";
+      const r = getRate(curr);
+      const excl = parseFloat(document.getElementById("f_Total_Quoted_Amount_Excl_VAT")?.value) || 0;
+      const disc = parseFloat(document.getElementById("f_Discount")?.value) || 0;
+      const vatOn = document.getElementById("f_VAT_Applicable")?.checked;
+      const net = Math.max(0, excl - disc);
+      const vat = manualVat ? (parseFloat(document.getElementById("f_VAT_Amount")?.value) || 0) : (vatOn ? Number((net * 0.05).toFixed(2)) : 0);
+      if (!manualVat) document.getElementById("f_VAT_Amount").value = vat;
+      const fin = net + vat;
+      document.getElementById("f_Total_Quoted_Amount_Excl_VAT_AED").value = (excl * r).toFixed(2);
+      document.getElementById("f_Discount_AED").value = (disc * r).toFixed(2);
+      document.getElementById("f_VAT_Amount_AED").value = (vat * r).toFixed(2);
+      document.getElementById("f_Final_Quoted_Amount_Incl_VAT").value = fin.toFixed(2);
+      document.getElementById("f_Final_Quoted_Amount_Incl_VAT_AED").value = (fin * r).toFixed(2);
+    }
+
+    function onCQEnquiryChange() {
+      const eid = document.getElementById("f_Enquiry_ID")?.value;
+      const enq = (db.enquiries || []).find(e => e.Enquiry_ID === eid);
+      if (enq) {
+        if (formMode === "create") document.getElementById("f_Client_Quotation_ID").value = genClientQuotationID(eid);
+        document.getElementById("f_Enquiry_Title").value = enq.Enquiry_Title || "";
+        document.getElementById("f_Client_Name").value = enq.Client_Name || "";
+        const cl = (db.clients || []).find(c => c.name === enq.Client_Name);
+        document.getElementById("f_Client_Code").value = cl?.code || "ATCL000001";
+        document.getElementById("f_VAT_Applicable").checked = getClientVatSetting(enq.Client_Name);
+        recalcCQHeader();
+      }
+    }
+
+    function recalcCQHeader(manualVat = false) {
+      const curr = document.getElementById("f_Currency")?.value || "AED";
+      const r = getRate(curr);
+      const excl = parseFloat(document.getElementById("f_Quotation_Value_Excl_VAT")?.value) || 0;
+      const disc = parseFloat(document.getElementById("f_Discount")?.value) || 0;
+      const vatOn = document.getElementById("f_VAT_Applicable")?.checked;
+      const net = Math.max(0, excl - disc);
+      const vat = manualVat ? (parseFloat(document.getElementById("f_VAT_Amount")?.value) || 0) : (vatOn ? Number((net * 0.05).toFixed(2)) : 0);
+      if (!manualVat) document.getElementById("f_VAT_Amount").value = vat;
+      const fin = net + vat;
+      const mAmt = parseFloat(document.getElementById("f_Margin_Amount")?.value) || 0;
+      document.getElementById("f_Quotation_Value_Excl_VAT_AED").value = (excl * r).toFixed(2);
+      document.getElementById("f_Discount_AED").value = (disc * r).toFixed(2);
+      document.getElementById("f_VAT_Amount_AED").value = (vat * r).toFixed(2);
+      document.getElementById("f_Final_Quotation_Value_Incl_VAT").value = fin.toFixed(2);
+      document.getElementById("f_Final_Quotation_Value_Incl_VAT_AED").value = (fin * r).toFixed(2);
+      document.getElementById("f_Margin_Amount_AED").value = (mAmt * r).toFixed(2);
+    }
+
+    function onSOCQChange() {
+      const cqid = document.getElementById("f_Client_Quotation_ID")?.value;
+      const cq = (db.clientQuotations || []).find(c => c.Client_Quotation_ID === cqid);
+      if (cq) {
+        document.getElementById("f_Enquiry_ID").value = cq.Enquiry_ID || "";
+        document.getElementById("f_Client_Name").value = cq.Client_Name || "";
+        document.getElementById("f_Client_Code").value = cq.Client_Code || "";
+        document.getElementById("f_Currency").value = cq.Currency || "AED";
+        document.getElementById("f_VAT_Applicable").checked = getClientVatSetting(cq.Client_Name);
+        recalcSOHeader();
+      }
+    }
+
+    function recalcSOHeader(manualVat = false) {
+      const curr = document.getElementById("f_Currency")?.value || "AED";
+      const r = getRate(curr);
+      const poVal = parseFloat(document.getElementById("f_PO_Value_Excl_VAT")?.value) || 0;
+      const disc = parseFloat(document.getElementById("f_Discount")?.value) || 0;
+      const net = Math.max(0, poVal - disc);
+      const vatOn = document.getElementById("f_VAT_Applicable")?.checked;
+      const vat = manualVat ? (parseFloat(document.getElementById("f_VAT_Amount")?.value) || 0) : (vatOn ? Number((net * 0.05).toFixed(2)) : 0);
+      if (!manualVat) document.getElementById("f_VAT_Amount").value = vat;
+      const fin = vatOn ? (net + vat) : net;
+      document.getElementById("f_PO_Value_Excl_VAT_AED").value = (poVal * r).toFixed(2);
+      document.getElementById("f_Discount_AED").value = (disc * r).toFixed(2);
+      document.getElementById("f_Net_Amount_Excl_VAT").value = net.toFixed(2);
+      document.getElementById("f_Net_Amount_Excl_VAT_AED").value = (net * r).toFixed(2);
+      document.getElementById("f_VAT_Amount_AED").value = (vat * r).toFixed(2);
+      document.getElementById("f_Final_PO_Value_Incl_VAT").value = fin.toFixed(2);
+      document.getElementById("f_Final_PO_Value_Incl_VAT_AED").value = (fin * r).toFixed(2);
+    }
+
+    function onSISalesOrderChange() {
+      const soid = document.getElementById("f_Sales_Order_ID")?.value;
+      const so = (db.salesOrders || []).find(s => s.Sales_Order_ID === soid);
+      if (so) {
+        document.getElementById("f_Currency").value = so.Currency || "AED";
+        document.getElementById("f_VAT_Applicable").checked = so.VAT_Applicable !== false;
+        recalcSIHeader();
+      }
+    }
+
+    function recalcSIHeader(manualVat = false) {
+      const curr = document.getElementById("f_Currency")?.value || "AED";
+      const r = getRate(curr);
+      const excl = parseFloat(document.getElementById("f_Invoice_Value_Excl_VAT")?.value) || 0;
+      const vatOn = document.getElementById("f_VAT_Applicable")?.checked;
+      const vat = manualVat ? (parseFloat(document.getElementById("f_VAT_Amount")?.value) || 0) : (vatOn ? Number((excl * 0.05).toFixed(2)) : 0);
+      if (!manualVat) document.getElementById("f_VAT_Amount").value = vat;
+      const incl = excl + vat;
+      const paid = tempPayments.reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
+      const out = Math.max(0, incl - paid);
+
+      let pStatus = "Unpaid";
+      if (paid > 0 && out > 0.009) pStatus = "Partially Paid";
+      else if (incl > 0 && out <= 0.009) pStatus = "Fully Paid";
+
+      document.getElementById("f_Invoice_Value_Excl_VAT_AED").value = (excl * r).toFixed(2);
+      document.getElementById("f_VAT_Amount_AED").value = (vat * r).toFixed(2);
+      document.getElementById("f_Invoice_Value_Incl_VAT").value = incl.toFixed(2);
+      document.getElementById("f_Invoice_Value_Incl_VAT_AED").value = (incl * r).toFixed(2);
+      document.getElementById("f_Amount_Received").value = paid.toFixed(2);
+      document.getElementById("f_Amount_Received_AED").value = (paid * r).toFixed(2);
+      document.getElementById("f_Outstanding_Amount").value = out.toFixed(2);
+      document.getElementById("f_Outstanding_Amount_AED").value = (out * r).toFixed(2);
+      document.getElementById("f_Payment_Status").value = pStatus;
+    }
+
+    function onPOSalesOrderChange() {
+      const soid = document.getElementById("f_Sales_Order_ID")?.value;
+      const so = (db.salesOrders || []).find(s => s.Sales_Order_ID === soid);
+      if (so) {
+        const cq = (db.clientQuotations || []).find(c => c.Client_Quotation_ID === so.Client_Quotation_ID);
+        document.getElementById("f_Supplier_Quotation_ID").value = cq?.Supplier_Quotation_ID || "";
+      } else {
+        document.getElementById("f_Supplier_Quotation_ID").value = "";
+      }
+    }
+
+    function onPOSupplierChange() {
+      const sname = document.getElementById("f_Supplier_Name")?.value;
+      const sp = (db.suppliers || []).find(s => s.name === sname);
+      if (sp) {
+        document.getElementById("f_Supplier_Code").value = sp.code || "";
+        document.getElementById("f_VAT_Applicable").checked = sp.vatApplicable !== "No";
+        recalcPOHeader();
+      }
+    }
+
+    function recalcPOHeader(manualVat = false) {
+      const curr = document.getElementById("f_Currency")?.value || "AED";
+      const r = getRate(curr);
+      const poVal = parseFloat(document.getElementById("f_PO_Value_Excl_VAT")?.value) || 0;
+      const disc = parseFloat(document.getElementById("f_Discount")?.value) || 0;
+      const net = Math.max(0, poVal - disc);
+      const vatOn = document.getElementById("f_VAT_Applicable")?.checked;
+      const vat = manualVat ? (parseFloat(document.getElementById("f_VAT_Amount")?.value) || 0) : (vatOn ? Number((net * 0.05).toFixed(2)) : 0);
+      if (!manualVat) document.getElementById("f_VAT_Amount").value = vat;
+      const fin = vatOn ? (net + vat) : net;
+      document.getElementById("f_PO_Value_Excl_VAT_AED").value = (poVal * r).toFixed(2);
+      document.getElementById("f_Discount_AED").value = (disc * r).toFixed(2);
+      document.getElementById("f_Net_Amount_Excl_VAT").value = net.toFixed(2);
+      document.getElementById("f_Net_Amount_Excl_VAT_AED").value = (net * r).toFixed(2);
+      document.getElementById("f_VAT_Amount_AED").value = (vat * r).toFixed(2);
+      document.getElementById("f_Final_PO_Value_Incl_VAT").value = fin.toFixed(2);
+      document.getElementById("f_Final_PO_Value_Incl_VAT_AED").value = (fin * r).toFixed(2);
+    }
+
+    function formatPOSalesOrderDisplay(soid) {
+      if (!soid) return "Internal Requirement";
+      const so = (db.salesOrders || []).find(s => s.Sales_Order_ID === soid);
+      return so ? `${so.Sales_Order_ID} – ${so.Client_PO_Title} – ${so.Client_Name}` : soid;
+    }
+
+    function onPIPOChange() {
+      const poid = document.getElementById("f_PO_ID")?.value;
+      const po = (db.purchaseOrders || []).find(p => p.PO_ID === poid);
+      if (po) {
+        document.getElementById("f_Sales_Order_ID").value = formatPOSalesOrderDisplay(po.Sales_Order_ID);
+        document.getElementById("f_Currency").value = po.Currency || "AED";
+        document.getElementById("f_VAT_Applicable").checked = po.VAT_Applicable !== false;
+        recalcPIHeader();
+      }
+    }
+
+    function recalcPIHeader(manualVat = false) {
+      const curr = document.getElementById("f_Currency")?.value || "AED";
+      const r = getRate(curr);
+      const excl = parseFloat(document.getElementById("f_Invoice_Value_Excl_VAT")?.value) || 0;
+      const vatOn = document.getElementById("f_VAT_Applicable")?.checked;
+      const vat = manualVat ? (parseFloat(document.getElementById("f_VAT_Amount")?.value) || 0) : (vatOn ? Number((excl * 0.05).toFixed(2)) : 0);
+      if (!manualVat) document.getElementById("f_VAT_Amount").value = vat;
+      const incl = excl + vat;
+      const paid = tempPayments.reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
+      const out = Math.max(0, incl - paid);
+
+      let pStatus = "Unpaid";
+      if (paid > 0 && out > 0.009) pStatus = "Partially Paid";
+      else if (incl > 0 && out <= 0.009) pStatus = "Paid";
+
+      document.getElementById("f_Invoice_Value_Excl_VAT_AED").value = (excl * r).toFixed(2);
+      document.getElementById("f_VAT_Amount_AED").value = (vat * r).toFixed(2);
+      document.getElementById("f_Invoice_Value_Incl_VAT").value = incl.toFixed(2);
+      document.getElementById("f_Invoice_Value_Incl_VAT_AED").value = (incl * r).toFixed(2);
+      document.getElementById("f_Amount_Paid").value = paid.toFixed(2);
+      document.getElementById("f_Amount_Paid_AED").value = (paid * r).toFixed(2);
+      document.getElementById("f_Outstanding_Payable").value = out.toFixed(2);
+      document.getElementById("f_Outstanding_Payable_AED").value = (out * r).toFixed(2);
+      document.getElementById("f_Payment_Status").value = pStatus;
+    }
+
+    // ==================== SAVE RECORD HANDLER ====================
+    function val(id) { return document.getElementById(id)?.value?.trim() || ""; }
+    function numVal(id) { return parseFloat(document.getElementById(id)?.value) || 0; }
+
+    function handleSaveRecordClick() {
+      // Purchase Order Conditional Validation
+      if (currentModule === "purchaseOrders") {
+        const cat = val("f_PO_Category");
+        const soid = val("f_Sales_Order_ID");
+        if ((cat === "Purchase – Client Order" || cat === "Freight – Client Order") && !soid) {
+          showToast("Sales_Order_ID is mandatory for Client Order PO categories.");
+          return;
+        }
+      }
+
+      // 1-to-1 Client Quotation per Enquiry Validation
+      if (currentModule === "clientQuotations" && formMode === "create") {
+        const eid = val("f_Enquiry_ID");
+        const exists = (db.clientQuotations || []).some(c => c.Enquiry_ID === eid);
+        if (exists) {
+          showToast(`A Client Quotation already exists for Enquiry ${eid}.`);
+          return;
+        }
+      }
+
+      if (formMode === "edit") {
+        openConfirmModal(
+          "Confirm Save Changes",
+          "Are you sure you want to save the updates to this record?",
+          "Yes, Save Changes",
+          false,
+          () => commitSaveRecord()
+        );
+      } else {
+        commitSaveRecord();
+      }
+    }
+
+    async function commitSaveRecord() {
+      const coll = db[currentModule];
+      const existingOwner = editingIdx !== null && coll[editingIdx]?.Created_By ? coll[editingIdx].Created_By : (activeUser ? activeUser.displayName : "Bilal Kaleel");
+      let record = {};
+
+      if (currentModule === "enquiries") {
+        record = {
+          Enquiry_ID: val("f_Enquiry_ID"), Created_By: existingOwner, Enquiry_Date: val("f_Enquiry_Date"),
+          Enquiry_Title: val("f_Enquiry_Title"), Client_Name: val("f_Client_Name"),
+          Client_Enquiry_Reference: val("f_Client_Enquiry_Reference"), Project_Name: val("f_Project_Name"),
+          Requirement_Details: val("f_Requirement_Details"), Contact_Name: val("f_Contact_Name"),
+          Contact_Email: val("f_Contact_Email"), Contact_Phone: val("f_Contact_Phone"),
+          Enquiry_Source: val("f_Enquiry_Source"), Quotation_Due_Date: val("f_Quotation_Due_Date"),
+          Enquiry_Status: val("f_Enquiry_Status"), Final_Quoted_Amount: numVal("f_Final_Quoted_Amount"),
+          Margin_Percent: numVal("f_Margin_Percent"), Last_Follow_Up_Date: val("f_Last_Follow_Up_Date"),
+          Next_Follow_Up_Date: val("f_Next_Follow_Up_Date"), Next_Action: val("f_Next_Action"),
+          Remarks: val("f_Remarks"), documents: tempAttachments, items: tempItems
+        };
+      } else if (currentModule === "supplierQuotations") {
+        record = {
+          Supplier_Quotation_ID: val("f_Supplier_Quotation_ID"), Created_By: existingOwner, Revision_No: val("f_Revision_No"),
+          Client_Name: val("f_Client_Name"), Enquiry_ID: val("f_Enquiry_ID"), Supplier_Name: val("f_Supplier_Name"),
+          Supplier_Quotation_Reference: val("f_Supplier_Quotation_Reference"), Quotation_Date: val("f_Quotation_Date"),
+          Received_Date: val("f_Received_Date"), Valid_Until: val("f_Valid_Until"),
+          Payment_Terms: val("f_Payment_Terms"), Delivery_Terms: val("f_Delivery_Terms"), Delivery_Period: val("f_Delivery_Period"),
+          Currency: val("f_Currency"), Total_Quoted_Amount_Excl_VAT: numVal("f_Total_Quoted_Amount_Excl_VAT"),
+          Total_Quoted_Amount_Excl_VAT_AED: numVal("f_Total_Quoted_Amount_Excl_VAT_AED"),
+          Discount: numVal("f_Discount"), Discount_AED: numVal("f_Discount_AED"),
+          VAT_Applicable: document.getElementById("f_VAT_Applicable")?.checked,
+          VAT_Amount: numVal("f_VAT_Amount"), VAT_Amount_AED: numVal("f_VAT_Amount_AED"),
+          Final_Quoted_Amount_Incl_VAT: numVal("f_Final_Quoted_Amount_Incl_VAT"),
+          Final_Quoted_Amount_Incl_VAT_AED: numVal("f_Final_Quoted_Amount_Incl_VAT_AED"),
+          Quotation_Status: val("f_Quotation_Status"), Remarks: val("f_Remarks"),
+          documents: tempAttachments, items: tempItems.map((it, idx) => ({ ...it, Line_No: idx + 1 }))
+        };
+      } else if (currentModule === "clientQuotations") {
+        record = {
+          Client_Quotation_ID: val("f_Client_Quotation_ID"), Created_By: existingOwner, Revision_No: val("f_Revision_No"),
+          Enquiry_ID: val("f_Enquiry_ID"), Enquiry_Title: val("f_Enquiry_Title"),
+          Client_Name: val("f_Client_Name"), Client_Code: val("f_Client_Code"),
+          Supplier_Quotation_ID: val("f_Supplier_Quotation_ID"), Quotation_Date: val("f_Quotation_Date"),
+          Submitted_Date: val("f_Submitted_Date"), Currency: val("f_Currency"), Valid_Until: val("f_Valid_Until"),
+          Payment_Terms: val("f_Payment_Terms"), Delivery_Terms: val("f_Delivery_Terms"), Delivery_Period: val("f_Delivery_Period"),
+          Quotation_Value_Excl_VAT: numVal("f_Quotation_Value_Excl_VAT"), Quotation_Value_Excl_VAT_AED: numVal("f_Quotation_Value_Excl_VAT_AED"),
+          Discount: numVal("f_Discount"), Discount_AED: numVal("f_Discount_AED"),
+          VAT_Applicable: document.getElementById("f_VAT_Applicable")?.checked,
+          VAT_Amount: numVal("f_VAT_Amount"), VAT_Amount_AED: numVal("f_VAT_Amount_AED"),
+          Final_Quotation_Value_Incl_VAT: numVal("f_Final_Quotation_Value_Incl_VAT"),
+          Final_Quotation_Value_Incl_VAT_AED: numVal("f_Final_Quotation_Value_Incl_VAT_AED"),
+          Margin_Percent: numVal("f_Margin_Percent"), Margin_Amount: numVal("f_Margin_Amount"),
+          Margin_Amount_AED: numVal("f_Margin_Amount_AED"), Quotation_Status: val("f_Quotation_Status"),
+          Quotation_Document_Link: val("f_Quotation_Document_Link"), Remarks: val("f_Remarks"),
+          documents: tempAttachments, items: tempItems.map((it, idx) => ({ ...it, Line_No: idx + 1 }))
+        };
+      } else if (currentModule === "salesOrders") {
+        record = {
+          Sales_Order_ID: val("f_Sales_Order_ID"), Created_By: existingOwner, Revision_No: val("f_Revision_No"),
+          Client_PO_Date: val("f_Client_PO_Date"), Client_PO_Reference: val("f_Client_PO_Reference"),
+          Client_PO_Title: val("f_Client_PO_Title"), Client_Quotation_ID: val("f_Client_Quotation_ID"),
+          Enquiry_ID: val("f_Enquiry_ID"), Client_Name: val("f_Client_Name"), Client_Code: val("f_Client_Code"),
+          Currency: val("f_Currency"), PO_Value_Excl_VAT: numVal("f_PO_Value_Excl_VAT"),
+          PO_Value_Excl_VAT_AED: numVal("f_PO_Value_Excl_VAT_AED"), Discount: numVal("f_Discount"), Discount_AED: numVal("f_Discount_AED"),
+          Net_Amount_Excl_VAT: numVal("f_Net_Amount_Excl_VAT"), Net_Amount_Excl_VAT_AED: numVal("f_Net_Amount_Excl_VAT_AED"),
+          VAT_Applicable: document.getElementById("f_VAT_Applicable")?.checked,
+          VAT_Amount: numVal("f_VAT_Amount"), VAT_Amount_AED: numVal("f_VAT_Amount_AED"),
+          Final_PO_Value_Incl_VAT: numVal("f_Final_PO_Value_Incl_VAT"), Final_PO_Value_Incl_VAT_AED: numVal("f_Final_PO_Value_Incl_VAT_AED"),
+          Total_Invoiced: numVal("f_Total_Invoiced"), Total_Invoiced_AED: numVal("f_Total_Invoiced_AED"),
+          Total_Payment_Received: numVal("f_Total_Payment_Received"), Total_Payment_Received_AED: numVal("f_Total_Payment_Received_AED"),
+          Outstanding_Payment: numVal("f_Outstanding_Payment"), Outstanding_Payment_AED: numVal("f_Outstanding_Payment_AED"),
+          Payment_Terms: val("f_Payment_Terms"), Expected_Payment_Details: val("f_Expected_Payment_Details"),
+          Delivery_Terms: val("f_Delivery_Terms"), Required_Delivery_Date: val("f_Required_Delivery_Date"),
+          PO_Status: val("f_PO_Status"), Remarks: val("f_Remarks"),
+          documents: tempAttachments, items: tempItems.map((it, idx) => ({ ...it, Order_Line_No: idx + 1 }))
+        };
+      } else if (currentModule === "salesInvoices") {
+        record = {
+          Invoice_ID: val("f_Invoice_ID"), Created_By: existingOwner, Sales_Order_ID: val("f_Sales_Order_ID"),
+          Invoice_Date: val("f_Invoice_Date"), Submitted_Date: val("f_Submitted_Date"), Due_Date: val("f_Due_Date"),
+          Currency: val("f_Currency"), Invoice_Value_Excl_VAT: numVal("f_Invoice_Value_Excl_VAT"),
+          Invoice_Value_Excl_VAT_AED: numVal("f_Invoice_Value_Excl_VAT_AED"),
+          VAT_Applicable: document.getElementById("f_VAT_Applicable")?.checked,
+          VAT_Amount: numVal("f_VAT_Amount"), VAT_Amount_AED: numVal("f_VAT_Amount_AED"),
+          Invoice_Value_Incl_VAT: numVal("f_Invoice_Value_Incl_VAT"), Invoice_Value_Incl_VAT_AED: numVal("f_Invoice_Value_Incl_VAT_AED"),
+          Amount_Received: numVal("f_Amount_Received"), Amount_Received_AED: numVal("f_Amount_Received_AED"),
+          Outstanding_Amount: numVal("f_Outstanding_Amount"), Outstanding_Amount_AED: numVal("f_Outstanding_Amount_AED"),
+          Invoice_Status: val("f_Invoice_Status"), Payment_Status: val("f_Payment_Status"),
+          Remarks: val("f_Remarks"), documents: tempAttachments, payments: tempPayments
+        };
+      } else if (currentModule === "purchaseOrders") {
+        record = {
+          PO_ID: val("f_PO_ID"), Created_By: existingOwner, Revision_No: val("f_Revision_No"),
+          PO_Title: val("f_PO_Title"), PO_Type: val("f_PO_Type"), PO_Category: val("f_PO_Category"),
+          Sales_Order_ID: val("f_Sales_Order_ID"), Supplier_Name: val("f_Supplier_Name"), Supplier_Code: val("f_Supplier_Code"),
+          PO_Date: val("f_PO_Date"), Supplier_Quotation_ID: val("f_Supplier_Quotation_ID"), Currency: val("f_Currency"),
+          PO_Value_Excl_VAT: numVal("f_PO_Value_Excl_VAT"), PO_Value_Excl_VAT_AED: numVal("f_PO_Value_Excl_VAT_AED"),
+          Discount: numVal("f_Discount"), Discount_AED: numVal("f_Discount_AED"),
+          Net_Amount_Excl_VAT: numVal("f_Net_Amount_Excl_VAT"), Net_Amount_Excl_VAT_AED: numVal("f_Net_Amount_Excl_VAT_AED"),
+          VAT_Applicable: document.getElementById("f_VAT_Applicable")?.checked,
+          VAT_Amount: numVal("f_VAT_Amount"), VAT_Amount_AED: numVal("f_VAT_Amount_AED"),
+          Final_PO_Value_Incl_VAT: numVal("f_Final_PO_Value_Incl_VAT"), Final_PO_Value_Incl_VAT_AED: numVal("f_Final_PO_Value_Incl_VAT_AED"),
+          Total_Invoiced: numVal("f_Total_Invoiced"), Total_Invoiced_AED: numVal("f_Total_Invoiced_AED"),
+          Total_Paid: numVal("f_Total_Paid"), Total_Paid_AED: numVal("f_Total_Paid_AED"),
+          Outstanding_Payable: numVal("f_Outstanding_Payable"), Outstanding_Payable_AED: numVal("f_Outstanding_Payable_AED"),
+          Payment_Terms: val("f_Payment_Terms"), Expected_Payment_Details: val("f_Expected_Payment_Details"),
+          Delivery_Terms: val("f_Delivery_Terms"), Expected_Delivery_Date: val("f_Expected_Delivery_Date"),
+          PO_Status: val("f_PO_Status"), Remarks: val("f_Remarks"),
+          documents: tempAttachments, items: tempItems.map((it, idx) => ({ ...it, PO_Line_No: idx + 1 }))
+        };
+      } else if (currentModule === "purchaseInvoices") {
+        record = {
+          Supplier_Invoice_ID: val("f_Supplier_Invoice_ID"), Created_By: existingOwner,
+          PO_ID: val("f_PO_ID"), Sales_Order_ID: val("f_Sales_Order_ID"),
+          Invoice_Date: val("f_Invoice_Date"), Received_Date: val("f_Received_Date"), Due_Date: val("f_Due_Date"),
+          Currency: val("f_Currency"), Invoice_Value_Excl_VAT: numVal("f_Invoice_Value_Excl_VAT"),
+          Invoice_Value_Excl_VAT_AED: numVal("f_Invoice_Value_Excl_VAT_AED"),
+          VAT_Applicable: document.getElementById("f_VAT_Applicable")?.checked,
+          VAT_Amount: numVal("f_VAT_Amount"), VAT_Amount_AED: numVal("f_VAT_Amount_AED"),
+          Invoice_Value_Incl_VAT: numVal("f_Invoice_Value_Incl_VAT"), Invoice_Value_Incl_VAT_AED: numVal("f_Invoice_Value_Incl_VAT_AED"),
+          Amount_Paid: numVal("f_Amount_Paid"), Amount_Paid_AED: numVal("f_Amount_Paid_AED"),
+          Outstanding_Payable: numVal("f_Outstanding_Payable"), Outstanding_Payable_AED: numVal("f_Outstanding_Payable_AED"),
+          Invoice_Status: val("f_Invoice_Status"), Payment_Status: val("f_Payment_Status"),
+          Remarks: val("f_Remarks"), documents: tempAttachments, payments: tempPayments
+        };
+      } else if (currentModule === "clients") {
+        record = {
+          code: val("f_code"), name: val("f_name"), type: val("f_type"), country: val("f_country"),
+          city: val("f_city"), contact: val("f_contact"), designation: val("f_designation"),
+          email: val("f_email"), phone: val("f_phone"), channel: val("f_channel"),
+          vatApplicable: val("f_vatApplicable"), status: val("f_status"), documents: tempAttachments
+        };
+      } else if (currentModule === "suppliers") {
+        record = {
+          code: val("f_code"), name: val("f_name"), category: val("f_category"), country: val("f_country"),
+          city: val("f_city"), contact: val("f_contact"), phone: val("f_phone"),
+          vatApplicable: val("f_vatApplicable"), status: val("f_status"), documents: tempAttachments
+        };
+      }
+
+      if (editingIdx === null) {
+        db[currentModule].unshift(record);
+      } else {
+        db[currentModule][editingIdx] = record;
+      }
+
+      formDirty = false;
+      await saveToDatabase();
+      showToast("Record saved & synced to database!");
+      closeRecordForm();
+    }
+
+    function exportCurrentModuleCSV() {
+      const rows = getVisibleCollection(currentModule);
+      if (!rows.length) { showToast("No records to export."); return; }
+      const keys = Object.keys(rows[0]).filter(k => !Array.isArray(rows[0][k]));
+      const csv = [
+        keys.join(","),
+        ...rows.map(r => keys.map(k => `"${String(r[k] ?? '').replace(/"/g, '""')}"`).join(","))
+      ].join("\n");
+      const a = document.createElement("a");
+      a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
+      a.download = `ATOM_ERP_${currentModule}.csv`;
+      a.click();
+    }
+
+    // ==================== BOOTSTRAP ====================
+    window.addEventListener("DOMContentLoaded", async () => {
+      const savedUser = sessionStorage.getItem("ATOM_NETLIFY_USER");
+      if (savedUser && authToken) {
+        try {
+          activeUser = JSON.parse(savedUser);
+          await loadFromDatabase();
+          finishLoginUI();
+        } catch (e) {}
+      }
+    });
+  </script>
+</body>
+</html>
