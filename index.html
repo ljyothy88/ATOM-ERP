@@ -2289,6 +2289,317 @@
         } catch (e) {}
       }
     });
-  </script>
+    
+ </script>
+  <script>
+  // ==================== ATOM ERP V6 ENHANCEMENT PATCH ====================
+  FALLBACK_USERS["management"] = { password: "mgmt@123", displayName: "Management User", role: "management", initials: "MG", status: "Active" };
+  Object.keys(FALLBACK_USERS).forEach(k => { if (!FALLBACK_USERS[k].status) FALLBACK_USERS[k].status = "Active"; });
+
+  MODULE_TITLES.dashboard = "0. Dashboard Overview";
+  MODULE_TITLES.reports = "00. Standard Reports";
+  MODULE_TITLES.userManagement = "10. User Management (Admin)";
+
+  let allUsersMap = JSON.parse(JSON.stringify(FALLBACK_USERS));
+  let activeReportTab = "enquiries";
+
+  // Inject Sidebar Menu Items & Workspaces on Load
+  window.addEventListener("DOMContentLoaded", () => {
+    const sidebarList = document.querySelector("#appSidebar .overflow-y-auto");
+    if (sidebarList && !document.getElementById("nav-dashboard")) {
+      const overviewGroup = document.createElement("div");
+      overviewGroup.innerHTML = `
+        <div class="nav-group-title px-2.5 mb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">Overview & Analytics</div>
+        <div class="space-y-1">
+          <button onclick="requestModuleSwitch('dashboard')" id="nav-dashboard" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg font-medium transition text-slate-300 hover:bg-slate-900">
+            <span class="mono font-bold text-xs w-5 text-center">📊</span>
+            <span class="nav-label truncate">Dashboard</span>
+          </button>
+          <button onclick="requestModuleSwitch('reports')" id="nav-reports" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg font-medium transition text-slate-300 hover:bg-slate-900">
+            <span class="mono font-bold text-xs w-5 text-center">📑</span>
+            <span class="nav-label truncate">Standard Reports</span>
+          </button>
+        </div>
+      `;
+      sidebarList.prepend(overviewGroup);
+
+      const adminGroup = document.createElement("div");
+      adminGroup.id = "sidebarAdminGroup";
+      adminGroup.className = "hidden";
+      adminGroup.innerHTML = `
+        <div class="nav-group-title px-2.5 mb-1.5 text-[10px] font-bold uppercase tracking-wider text-rose-400">System Administration</div>
+        <div class="space-y-1">
+          <button onclick="requestModuleSwitch('userManagement')" id="nav-userManagement" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg font-medium transition text-slate-300 hover:bg-slate-900">
+            <span class="mono font-bold text-xs w-5 text-center">👤</span>
+            <span class="nav-label truncate">User Management</span>
+          </button>
+        </div>
+      `;
+      sidebarList.appendChild(adminGroup);
+    }
+
+    const mainArea = document.querySelector("main");
+    if (mainArea && !document.getElementById("workspace-custom")) {
+      const customDiv = document.createElement("div");
+      customDiv.id = "workspace-custom";
+      customDiv.className = "hidden space-y-6";
+      mainArea.appendChild(customDiv);
+    }
+  });
+
+  // Override Role Visibility Helper for Admin + Management
+  getVisibleCollection = function(mod) {
+    const list = db[mod] || [];
+    if (mod === "clients" || mod === "suppliers") return list;
+    if (!activeUser) return [];
+    if (activeUser.role === "admin" || activeUser.role === "management") {
+      const f = document.getElementById("globalEmployeeFilter")?.value || "ALL";
+      return f === "ALL" ? list : list.filter(r => r.Created_By === f);
+    }
+    return list.filter(r => r.Created_By === activeUser.displayName);
+  };
+
+  // Override finishLoginUI to support Admin User Management & Management Role
+  finishLoginUI = async function() {
+    document.getElementById("login-screen").classList.add("hidden");
+    document.getElementById("headerUserAvatar").textContent = activeUser.initials || "US";
+    document.getElementById("headerUserName").textContent = activeUser.displayName;
+    const roleLabel = activeUser.role === "admin"
+      ? "System Admin (Full Access)"
+      : (activeUser.role === "management" ? "Management (All Employees)" : "Employee");
+    document.getElementById("headerUserRole").textContent = roleLabel;
+
+    if (activeUser.role === "admin" || activeUser.role === "management") {
+      document.getElementById("adminFilterWrap").classList.remove("hidden");
+    } else {
+      document.getElementById("adminFilterWrap").classList.add("hidden");
+    }
+
+    const admGrp = document.getElementById("sidebarAdminGroup");
+    if (admGrp) {
+      if (activeUser.role === "admin") admGrp.classList.remove("hidden");
+      else admGrp.classList.add("hidden");
+    }
+
+    await fetchUsersList();
+    switchModule("dashboard");
+    showToast(`Signed in as ${activeUser.displayName}`);
+  };
+
+  async function fetchUsersList() {
+    if (!activeUser || (activeUser.role !== "admin" && activeUser.role !== "management")) return;
+    try {
+      const res = await fetch("/.netlify/functions/api?action=users", {
+        headers: { "Authorization": `Bearer ${authToken}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.users) {
+          allUsersMap = data.users;
+          localStorage.setItem("ATOM_ERP_LOCAL_USERS_V1", JSON.stringify(allUsersMap));
+        }
+      }
+    } catch (e) {
+      allUsersMap = getLocalUsersMap();
+    }
+    updateEmployeeFilterDropdown();
+  }
+
+  function updateEmployeeFilterDropdown() {
+    const sel = document.getElementById("globalEmployeeFilter");
+    if (!sel) return;
+    const curr = sel.value || "ALL";
+    const empNames = Object.values(allUsersMap).filter(u => u.role === "employee").map(u => u.displayName);
+    sel.innerHTML = `<option value="ALL">All Employees</option>` + empNames.map(n => `<option value="${n}">${n}</option>`).join("");
+    sel.value = empNames.includes(curr) ? curr : "ALL";
+    sel.onchange = () => {
+      if (currentModule === "dashboard") renderDashboardView();
+      else if (currentModule === "reports") renderReportsView();
+      else renderListingView();
+    };
+  }
+
+  // Override switchModule to handle Dashboard, Reports & User Management
+  switchModule = function(mod) {
+    currentModule = mod;
+    formDirty = false;
+    Object.keys(MODULE_TITLES).forEach(k => {
+      const btn = document.getElementById("nav-" + k);
+      if (btn) {
+        btn.className = k === mod
+          ? "w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg font-medium transition bg-blue-600 text-white shadow"
+          : "w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg font-medium transition text-slate-300 hover:bg-slate-900";
+      }
+    });
+    document.getElementById("topHeaderTitle").textContent = MODULE_TITLES[mod] || "Register";
+
+    const customWrap = document.getElementById("workspace-custom");
+    const listWrap = document.getElementById("workspace-listing");
+    const formWrap = document.getElementById("workspace-form");
+
+    if (["dashboard", "reports", "userManagement"].includes(mod)) {
+      listWrap.classList.add("hidden");
+      formWrap.classList.add("hidden");
+      customWrap.classList.remove("hidden");
+      if (mod === "dashboard") renderDashboardView();
+      else if (mod === "reports") renderReportsView();
+      else if (mod === "userManagement") renderUserManagementView();
+    } else {
+      if (customWrap) customWrap.classList.add("hidden");
+      closeRecordForm();
+    }
+  };
+
+  // ==================== DASHBOARD (EMPLOYEE & CONSOLIDATED MANAGEMENT) ====================
+  function renderDashboardView() {
+    recalculateAllRollups();
+    const wrap = document.getElementById("workspace-custom");
+    const enqs = getVisibleCollection("enquiries");
+    const cqs = getVisibleCollection("clientQuotations");
+    const sos = getVisibleCollection("salesOrders");
+    const sis = getVisibleCollection("salesInvoices");
+    const pos = getVisibleCollection("purchaseOrders");
+    const pis = getVisibleCollection("purchaseInvoices");
+
+    const totQuoted = cqs.reduce((s, r) => s + (parseFloat(r.Final_Quotation_Value_Incl_VAT_AED) || 0), 0);
+    const totSO = sos.reduce((s, r) => s + (parseFloat(r.Final_PO_Value_Incl_VAT_AED) || 0), 0);
+    const totReceivable = sis.reduce((s, r) => s + (parseFloat(r.Outstanding_Amount_AED) || 0), 0);
+    const totPayable = pis.reduce((s, r) => s + (parseFloat(r.Outstanding_Payable_AED) || 0), 0);
+
+    const isConsolidated = activeUser && (activeUser.role === "admin" || activeUser.role === "management");
+    const empFilter = document.getElementById("globalEmployeeFilter")?.value || "ALL";
+    const dashTitle = isConsolidated
+      ? `Consolidated Management Dashboard (${empFilter === 'ALL' ? 'All Employees' : empFilter})`
+      : `Employee Dashboard — ${activeUser?.displayName}`;
+
+    const empNames = Object.values(allUsersMap).filter(u => u.role === "employee").map(u => u.displayName);
+    const empBreakdownRows = empNames.map(emp => {
+      const eEnq = (db.enquiries || []).filter(r => r.Created_By === emp).length;
+      const eCQ = (db.clientQuotations || []).filter(r => r.Created_By === emp);
+      const eSO = (db.salesOrders || []).filter(r => r.Created_By === emp);
+      const ePO = (db.purchaseOrders || []).filter(r => r.Created_By === emp);
+      const cqVal = eCQ.reduce((s, r) => s + (parseFloat(r.Final_Quotation_Value_Incl_VAT_AED) || 0), 0);
+      const soVal = eSO.reduce((s, r) => s + (parseFloat(r.Final_PO_Value_Incl_VAT_AED) || 0), 0);
+      return `
+        <tr class="hover:bg-slate-50">
+          <td class="py-3 px-4 font-bold text-slate-900">${emp}</td>
+          <td class="py-3 px-4 text-center mono">${eEnq}</td>
+          <td class="py-3 px-4 text-center mono">${eCQ.length}</td>
+          <td class="py-3 px-4 text-right mono font-semibold text-blue-700">${fmtNum(cqVal)}</td>
+          <td class="py-3 px-4 text-center mono">${eSO.length}</td>
+          <td class="py-3 px-4 text-right mono font-semibold text-emerald-700">${fmtNum(soVal)}</td>
+          <td class="py-3 px-4 text-center mono">${ePO.length}</td>
+        </tr>
+      `;
+    }).join("");
+
+    wrap.innerHTML = `
+      <div class="bg-slate-900 text-white p-5 rounded-xl flex items-center justify-between">
+        <div>
+          <h3 class="text-base font-bold">${dashTitle}</h3>
+          <p class="text-xs text-slate-400 mt-0.5">Real-time commercial, order & billing summary in AED</p>
+        </div>
+        <button onclick="switchModule('reports')" class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-xs font-semibold">Open Standard Reports →</button>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white p-4 rounded-xl border border-slate-200">
+          <div class="text-[11px] font-bold uppercase text-slate-400">Enquiries / Quotations</div>
+          <div class="text-2xl font-bold text-slate-900 mt-1">${enqs.length} / ${cqs.length}</div>
+          <div class="text-xs text-blue-600 font-semibold mt-1 mono">Quoted: AED ${fmtNum(totQuoted)}</div>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-slate-200">
+          <div class="text-[11px] font-bold uppercase text-slate-400">Sales Orders (${sos.length})</div>
+          <div class="text-xl font-bold text-emerald-700 mt-1 mono">AED ${fmtNum(totSO)}</div>
+          <div class="text-xs text-slate-500 mt-1">Confirmed Client Orders</div>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-slate-200">
+          <div class="text-[11px] font-bold uppercase text-slate-400">Outstanding Receivables</div>
+          <div class="text-xl font-bold text-amber-600 mt-1 mono">AED ${fmtNum(totReceivable)}</div>
+          <div class="text-xs text-slate-500 mt-1">Across ${sis.length} Sales Invoices</div>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-slate-200">
+          <div class="text-[11px] font-bold uppercase text-slate-400">Outstanding Payables</div>
+          <div class="text-xl font-bold text-rose-600 mt-1 mono">AED ${fmtNum(totPayable)}</div>
+          <div class="text-xs text-slate-500 mt-1">Across ${pos.length} POs / ${pis.length} Invoices</div>
+        </div>
+      </div>
+
+      ${isConsolidated ? `
+        <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+          <div class="p-4 border-b border-slate-200 font-bold text-xs uppercase tracking-wider text-slate-700">Consolidated Employee Performance Breakdown</div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead class="bg-slate-900 text-white text-[11px] uppercase">
+                <tr><th class="py-3 px-4">Employee</th><th class="py-3 px-4 text-center">Enquiries</th><th class="py-3 px-4 text-center">Client Quotes</th><th class="py-3 px-4 text-right">Quoted Value (AED)</th><th class="py-3 px-4 text-center">Sales Orders</th><th class="py-3 px-4 text-right">Sales Order Value (AED)</th><th class="py-3 px-4 text-center">Purchase Orders</th></tr>
+              </thead>
+              <tbody class="divide-y divide-slate-200">${empBreakdownRows}</tbody>
+            </table>
+          </div>
+        </div>
+      ` : ''}
+    `;
+  }
+
+  // ==================== STANDARD REPORTS (EMPLOYEE & CONSOLIDATED) ====================
+  function renderReportsView() {
+    recalculateAllRollups();
+    const wrap = document.getElementById("workspace-custom");
+    const rows = getVisibleCollection(activeReportTab);
+    const isConsolidated = activeUser && (activeUser.role === "admin" || activeUser.role === "management");
+
+    const tabs = [
+      { id: "enquiries", label: "Enquiry & Conversion Report" },
+      { id: "clientQuotations", label: "Client Quotations Report" },
+      { id: "salesOrders", label: "Sales Orders & Receivables Report" },
+      { id: "purchaseOrders", label: "Purchase Orders & Payables Report" }
+    ];
+
+    let tableHtml = "";
+    if (activeReportTab === "enquiries") {
+      tableHtml = `<thead class="bg-slate-900 text-white text-[11px] uppercase"><tr><th class="p-3">Enquiry_ID</th><th class="p-3">Date</th><th class="p-3">Client</th><th class="p-3">Title</th><th class="p-3">Employee</th><th class="p-3">Status</th><th class="p-3 text-right">Quoted (AED)</th><th class="p-3 text-right">Margin %</th></tr></thead>
+      <tbody class="divide-y divide-slate-200">${rows.map(r => `<tr><td class="p-3 mono font-bold">${r.Enquiry_ID}</td><td class="p-3 mono">${formatDateDDMMMYYYY(r.Enquiry_Date)}</td><td class="p-3">${r.Client_Name}</td><td class="p-3">${r.Enquiry_Title}</td><td class="p-3 font-semibold">${r.Created_By}</td><td class="p-3">${r.Enquiry_Status}</td><td class="p-3 text-right mono">${fmtNum(r.Final_Quoted_Amount)}</td><td class="p-3 text-right mono">${fmtNum(r.Margin_Percent)}%</td></tr>`).join("")}</tbody>`;
+    } else if (activeReportTab === "clientQuotations") {
+      tableHtml = `<thead class="bg-slate-900 text-white text-[11px] uppercase"><tr><th class="p-3">Quotation_ID</th><th class="p-3">Enquiry_ID</th><th class="p-3">Client</th><th class="p-3">Supplier_Quotation_IDs</th><th class="p-3">Employee</th><th class="p-3">Status</th><th class="p-3 text-right">Final Incl VAT (AED)</th></tr></thead>
+      <tbody class="divide-y divide-slate-200">${rows.map(r => `<tr><td class="p-3 mono font-bold">${r.Client_Quotation_ID}</td><td class="p-3 mono">${r.Enquiry_ID}</td><td class="p-3">${r.Client_Name}</td><td class="p-3 mono">${r.Supplier_Quotation_ID || '-'}</td><td class="p-3 font-semibold">${r.Created_By}</td><td class="p-3">${r.Quotation_Status}</td><td class="p-3 text-right mono font-bold">${fmtNum(r.Final_Quotation_Value_Incl_VAT_AED)}</td></tr>`).join("")}</tbody>`;
+    } else if (activeReportTab === "salesOrders") {
+      tableHtml = `<thead class="bg-slate-900 text-white text-[11px] uppercase"><tr><th class="p-3">Sales_Order_ID</th><th class="p-3">Client</th><th class="p-3">Employee</th><th class="p-3">Payment_Schedule</th><th class="p-3 text-right">Order Value (AED)</th><th class="p-3 text-right">Invoiced (AED)</th><th class="p-3 text-right">Received (AED)</th><th class="p-3 text-right">Outstanding (AED)</th></tr></thead>
+      <tbody class="divide-y divide-slate-200">${rows.map(r => `<tr><td class="p-3 mono font-bold">${r.Sales_Order_ID}</td><td class="p-3">${r.Client_Name}</td><td class="p-3 font-semibold">${r.Created_By}</td><td class="p-3">${r.Payment_Schedule || '-'}</td><td class="p-3 text-right mono">${fmtNum(r.Final_PO_Value_Incl_VAT_AED)}</td><td class="p-3 text-right mono">${fmtNum(r.Total_Invoiced_AED)}</td><td class="p-3 text-right mono text-emerald-700">${fmtNum(r.Total_Payment_Received_AED)}</td><td class="p-3 text-right mono text-rose-600 font-bold">${fmtNum(r.Outstanding_Payment_AED)}</td></tr>`).join("")}</tbody>`;
+    } else {
+      tableHtml = `<thead class="bg-slate-900 text-white text-[11px] uppercase"><tr><th class="p-3">PO_ID</th><th class="p-3">Sales_Order_ID</th><th class="p-3">Supplier</th><th class="p-3">Supplier_Quotation_ID</th><th class="p-3">Employee</th><th class="p-3">Payment_Schedule</th><th class="p-3 text-right">PO Value (AED)</th><th class="p-3 text-right">Outstanding (AED)</th></tr></thead>
+      <tbody class="divide-y divide-slate-200">${rows.map(r => `<tr><td class="p-3 mono font-bold">${r.PO_ID}</td><td class="p-3 mono">${r.Sales_Order_ID || 'Internal'}</td><td class="p-3">${r.Supplier_Name}</td><td class="p-3 mono">${r.Supplier_Quotation_ID || '-'}</td><td class="p-3 font-semibold">${r.Created_By}</td><td class="p-3">${r.Payment_Schedule || '-'}</td><td class="p-3 text-right mono">${fmtNum(r.Final_PO_Value_Incl_VAT_AED)}</td><td class="p-3 text-right mono text-rose-600 font-bold">${fmtNum(r.Outstanding_Payable_AED)}</td></tr>`).join("")}</tbody>`;
+    }
+
+    wrap.innerHTML = `
+      <div class="bg-white p-4 rounded-xl border border-slate-200 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex flex-wrap gap-2">
+          ${tabs.map(t => `<button onclick="activeReportTab='${t.id}'; renderReportsView();" class="px-3.5 py-2 rounded-lg text-xs font-semibold ${activeReportTab === t.id ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}">${t.label}</button>`).join("")}
+        </div>
+        <button onclick="currentModule='${activeReportTab}'; exportCurrentModuleCSV(); currentModule='reports';" class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold">Export Report CSV</button>
+      </div>
+      <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+        <div class="p-4 border-b border-slate-200 flex justify-between items-center">
+          <span class="text-xs font-bold uppercase text-slate-700">${isConsolidated ? 'Consolidated Standard Report' : 'Employee Standard Report'} (${rows.length} Records)</span>
+        </div>
+        <div class="overflow-x-auto"><table class="w-full text-left border-collapse text-xs">${tableHtml}</table></div>
+      </div>
+    `;
+  }
+
+  // ==================== SYSTEM ADMIN USER MANAGEMENT MODULE ====================
+  async function renderUserManagementView() {
+    await fetchUsersList();
+    const wrap = document.getElementById("workspace-custom");
+    const entries = Object.entries(allUsersMap);
+
+    wrap.innerHTML = `
+      <div class="bg-white p-5 rounded-xl border border-slate-200 space-y-4">
+        <h3 class="text-sm font-bold text-slate-900">Add / Update System User</h3>
+        <div class="grid grid-cols-1 md:grid-cols-6 gap-3">
+          <input type="text" id="um_username" placeholder="Username (e.g. rahul)" class="text-xs border rounded-lg px-3 py-2" />
+          <input type="text" id="um_displayName" placeholder="Full Display Name" class="text-xs border rounded-lg px-3 py-2" />
+          <input type="text" id="um_password" placeholder="Password (e.g. atom@123)" class="text-xs border rounded-lg px-3 py-2" />
+          <select id="um_role" class="text-xs border rounded-lg px-3 py-2">
+            <option value="employee">Employee
 </body>
 </html>
