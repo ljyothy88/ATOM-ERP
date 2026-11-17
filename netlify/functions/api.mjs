@@ -14,6 +14,9 @@ const TX_COLLECTIONS = [
 // Management users can view all records but cannot change them.
 const MANAGEMENT_READ_ONLY = true;
 
+// Netlify Functions accept request bodies up to 6 MB; base64 adds ~33%, so files are capped at 4 MB.
+const MAX_FILE_BYTES = 4 * 1024 * 1024;
+
 const DEFAULT_USERS = {
   "bilal":      { password: "atom@123",     displayName: "Bilal Kaleel",    role: "employee",   status: "active", initials: "BK" },
   "gayathri":   { password: "gayathri@123", displayName: "Gayathri",        role: "employee",   status: "active", initials: "GA" },
@@ -264,6 +267,45 @@ export default async (req, context) => {
         await store.setJSON("erp_users", users);
         return jsonResponse({ ok: true, users: publicUserList(users) });
       }
+    }
+
+    // ---------------- ATTACHMENTS ----------------
+    // Files live in their own blob store; records keep only { id, name, size, type }.
+    if (req.method === "POST" && action === "upload") {
+      if (isMgmt && MANAGEMENT_READ_ONLY) return jsonResponse({ ok: false, error: "Management access is view-only." }, 403);
+      const body = await req.json().catch(() => ({}));
+      const name = String(body.name || "file").replace(/[\r\n"]/g, "").slice(0, 200);
+      const type = String(body.type || "application/octet-stream").slice(0, 100);
+      let buf;
+      try { buf = Buffer.from(String(body.data || ""), "base64"); } catch (e) { buf = null; }
+      if (!buf || !buf.length) return jsonResponse({ ok: false, error: "Empty file." }, 400);
+      if (buf.length > MAX_FILE_BYTES) {
+        return jsonResponse({ ok: false, error: `File is larger than ${MAX_FILE_BYTES / 1024 / 1024} MB.` }, 413);
+      }
+      const id = crypto.randomUUID();
+      const files = getStore("atom-erp-files");
+      const meta = { id, name, type, size: buf.length, uploadedBy: sessionUser.displayName, uploadedAt: new Date().toISOString() };
+      await files.set(`data/${id}`, buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.length));
+      await files.setJSON(`meta/${id}`, meta);
+      return jsonResponse({ ok: true, file: { id, name, type, size: buf.length } });
+    }
+
+    if (req.method === "GET" && action === "file") {
+      const id = url.searchParams.get("id") || "";
+      if (!/^[0-9a-f-]{36}$/i.test(id)) return jsonResponse({ ok: false, error: "Invalid file id" }, 400);
+      const files = getStore("atom-erp-files");
+      const meta = await files.get(`meta/${id}`, { type: "json" });
+      const data = meta ? await files.get(`data/${id}`, { type: "arrayBuffer" }) : null;
+      if (!meta || !data) return jsonResponse({ ok: false, error: "File not found" }, 404);
+      return new Response(data, {
+        status: 200,
+        headers: {
+          "Content-Type": meta.type || "application/octet-stream",
+          "Content-Disposition": `inline; filename="${encodeURIComponent(meta.name)}"`,
+          "Cache-Control": "private, max-age=300",
+          "X-Content-Type-Options": "nosniff"
+        }
+      });
     }
 
     // ---------------- LOAD DATA ----------------
